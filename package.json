@@ -1,0 +1,73 @@
+{
+  "name": "windows-boost",
+  "productName": "Windows Boost",
+  "version": "1.0.0",
+  "description": "Otimizador para Windows 10/11 — 100% local, sem login, sem licença e sem envio de dados.",
+  "main": "electron/main.js",
+  "author": "Windows Boost",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently -k \"vite\" \"wait-on tcp:5173 && cross-env VITE_DEV=1 electron .\"",
+    "build": "vite build",
+    "start": "vite build && electron .",
+    "dist": "vite build && electron-builder --win --x64 --publish never",
+    "check": "node scripts/check.js",
+    "mock": "node scripts/gen-mock.js"
+  },
+  "build": {
+    "appId": "local.windowsboost.app",
+    "productName": "Windows Boost",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "package.json"
+    ],
+    "publish": null,
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "requestedExecutionLevel": "requireAdministrator",
+      "icon": "build/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "perMachine": true,
+      "createDesktopShortcut": true,
+      "artifactName": "WindowsBoost-Setup-${version}.${ext}"
+    },
+    "portable": {
+      "artifactName": "WindowsBoost-Portatil-${version}.${ext}"
+    }
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "systeminformation": "^5.33.23"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.7.0",
+    "concurrently": "^9.2.5",
+    "cross-env": "^7.0.3",
+    "electron": "^33.4.11",
+    "electron-builder": "^25.1.8",
+    "vite": "^5.4.21",
+    "wait-on": "^8.0.5"
+  }
+}
