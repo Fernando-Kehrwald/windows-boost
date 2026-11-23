@@ -31,10 +31,7 @@ const gamemode = require('./modules/gamemode');
 const cleaner = require('./modules/cleaner');
 const ram = require('./modules/ram');
 const debloat = require('./modules/debloat');
-const apps = require('./modules/apps');
 const dns = require('./modules/dns');
-const bios = require('./modules/bios');
-const drivers = require('./modules/drivers');
 const utilities = require('./modules/utilities');
 const advisor = require('./modules/advisor');
 const thermal = require('./modules/thermal');
@@ -118,7 +115,6 @@ async function applySettings(patch) {
   store.update((d) => { d.settings = { ...d.settings, ...patch }; });
   const s = store.get().settings;
   if ('startWithWindows' in patch && patch.startWithWindows !== before.startWithWindows && ps.IS_WIN) await setStartWithWindows(s.startWithWindows);
-  if ('keepTimerResolution' in patch) s.keepTimerResolution ? system.timerStart() : system.timerStop();
   return s;
 }
 
@@ -150,9 +146,12 @@ const H = {
   'sys.monitorStop': () => system.stopMonitor(),
 
   'advisor.analyze': () => advisor.analyze(),
+  'advisor.last': () => advisor.lastApplied(),
+  'advisor.saveApplied': (ids) => advisor.saveApplied(ids),
+  'restore.ensure': (reason) => restore.ensureRestorePoint(reason || 'otimizacao'),
   'tweaks.list': () => tweaks.list(),
   'tweaks.status': () => tweaks.status(),
-  'tweaks.apply': (ids) => tweaks.applyMany(ids),
+  'tweaks.apply': (ids, opts) => tweaks.applyMany(ids, { skipRestorePoint: !!(opts && opts.skipRestorePoint) }),
   'tweaks.unapply': (ids) => tweaks.unapplyMany(ids),
   'tweaks.applied': () => tweaks.appliedList(),
 
@@ -176,32 +175,6 @@ const H = {
   'thermal.probe': () => thermal.probe(),
   'gm.lists': () => ({ heavy: gamemode.HEAVY, protected: gamemode.PROTECTED }),
 
-  'hw.timerInfo': () => system.timerInfo(),
-  'hw.timerStart': () => system.timerStart(),
-  'hw.timerStop': () => system.timerStop(),
-  'hw.msiList': () => system.msiList(),
-  'hw.msiSet': (id, on) => system.msiSet(id, on),
-  'hw.volumes': () => system.volumes(),
-  'hw.optimize': (letter, mode) => system.optimizeVolume(letter, mode),
-  'hw.peripherals': () => system.peripherals(),
-
-  'bios.info': () => bios.info(),
-  'bios.guide': (platform, vendor) => bios.guideFor(platform, vendor),
-  'bios.export': () => bios.scewinExport(),
-  'bios.apply': (changes) => bios.scewinApply(changes),
-  'bios.backups': () => bios.biosBackups(),
-  'bios.restore': (file) => bios.scewinRestore(file),
-  'bios.bootState': () => bios.bootState(),
-  'bios.bootSet': (k, on) => bios.bootSet(k, on),
-  'bios.bcdBackups': () => bios.bcdBackups(),
-  'bios.bcdRestore': (file) => bios.bcdRestore(file),
-  'bios.rebootFirmware': () => bios.rebootToFirmware(),
-
-  'drivers.list': () => drivers.list(),
-  'drivers.install': async () => { const f = await H['dialog.folder']('Pasta com o driver (.inf) baixado'); return f ? drivers.installInf(f) : null; },
-  'drivers.vendor': (v) => shell.openExternal(drivers.VENDOR_PAGES[v]),
-  'drivers.windowsUpdate': () => shell.openExternal('ms-settings:windowsupdate-optionalupdates'),
-
   'clean.list': () => cleaner.list(),
   'clean.scan': (ids) => cleaner.scan(ids),
   'clean.run': (ids, opts) => cleaner.clean(ids, opts),
@@ -222,18 +195,6 @@ const H = {
     if (!r.ok && r.family) await shell.openExternal(`ms-windows-store://pdp/?PFN=${encodeURIComponent(r.family)}`);
     return r;
   },
-
-  'apps.catalog': () => apps.catalog(),
-  'apps.managers': () => apps.managers(),
-  'apps.install': (ids) => apps.install(ids, (p) => send('apps.progress', p)),
-  'apps.export': async (ids) => { const f = await H['dialog.save']('meus-apps.json', [{ name: 'Lista', extensions: ['json'] }]); return f ? apps.exportList(f, ids) : false; },
-  'apps.import': async () => { const f = await H['dialog.file']([{ name: 'Lista', extensions: ['json'] }], 'Importar lista de apps'); return f ? apps.importList(f) : null; },
-  'apps.programs': () => apps.programs(),
-  'apps.uninstall': (list, opts) => apps.uninstall(list, opts, (p) => send('apps.uninstallProgress', p)),
-  'apps.leftovers': (list) => apps.leftovers(list),
-  'apps.removeLeftovers': (items) => apps.removeLeftovers(items),
-  'apps.updates': () => apps.updates(),
-  'apps.removeUpdate': (kb) => apps.removeUpdate(kb),
 
   'dns.presets': () => dns.PRESETS,
   'dns.current': () => dns.current(),
@@ -263,7 +224,7 @@ ipcMain.handle('call', async (_e, name, ...args) => {
 });
 
 app.on('second-instance', () => { if (win) { win.show(); win.focus(); } });
-app.on('before-quit', () => { quitting = true; system.timerStop(); system.stopMonitor(true); });
+app.on('before-quit', () => { quitting = true; system.stopMonitor(true); });
 app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
 
 app.whenReady().then(async () => {
@@ -278,7 +239,6 @@ app.whenReady().then(async () => {
   createWindow(!hidden);
   createTray();
   log.info(`Windows Boost ${app.getVersion()} iniciado.`);
-  if (store.get().settings.keepTimerResolution) system.timerStart();
   ram.schedule();
   gamemode.recover().catch(() => {});
 });

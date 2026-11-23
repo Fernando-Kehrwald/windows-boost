@@ -58,32 +58,30 @@ export default function Tweaks({ go }) {
   const [filter, setFilter] = useState('all');
   const [sel, setSel] = useState({});
 
-  const all = (list.data || []).filter((t) => t.cat !== 'hardware');
+  const all = list.data || [];
   const st = status.data || {};
   const shown = useMemo(() => all.filter((t) => (cat === 'all' || t.cat === cat)
     && (!q || `${t.name} ${t.desc}`.toLowerCase().includes(q.toLowerCase()))
-    && (filter === 'all' || (filter === 'rec' && t.rec) || (filter === 'on' && st[t.id]) || (filter === 'off' && !st[t.id]))), [all, cat, q, filter, st]);
+    && (filter === 'all' || (filter === 'on' && st[t.id]) || (filter === 'off' && !st[t.id]))), [all, cat, q, filter, st]);
   const selected = all.filter((t) => sel[t.id]);
   const appliedCount = all.filter((t) => st[t.id]).length;
 
   if (list.loading) return <Loading text="Carregando ajustes..." />;
   return (
     <>
-      <PageHeader title="Ajustes" desc={`${all.length} ajustes do Windows. Cada um guarda o valor anterior e pode ser desfeito (exceto os marcados "Sem desfazer").`}
+      <PageHeader title="Ajustes" desc={`Os ${all.length} ajustes, um por um, para quem quer escolher manualmente. Cada um guarda o valor anterior e pode ser desfeito.`}
         actions={<>
           <Button icon="refresh" onClick={status.reload} loading={status.loading}>Verificar estado</Button>
-          <Button icon="star" onClick={() => run(all.filter((t) => t.rec && !st[t.id]), true)}>Aplicar recomendados</Button>
-          <Button variant="primary" icon="bolt" onClick={() => go('auto')}>Otimização automática</Button>
         </>} />
       {needReboot && <RebootBanner />}
-      <Callout tone="info" icon="bolt" title="Não sabe quais aplicar?" actions={<Button small variant="primary" onClick={() => go('auto')}>Analisar meu PC</Button>}>A Otimização automática lê o seu hardware e monta um plano com o motivo de cada ajuste.</Callout>
+      <Callout tone="info" icon="bolt" title="Não sabe quais aplicar? Use a Otimização automática." actions={<Button small variant="primary" onClick={() => go('auto')}>Otimizar meu PC</Button>}>Ela lê o seu hardware e escolhe só o que faz sentido para ele, explicando cada decisão. Esta aba é para quem quer mexer manualmente.</Callout>
       <div className="row between">
         <Tabs value={cat} onChange={setCat} tabs={CATS.map((c) => ({ ...c, count: c.id === 'all' ? all.length : all.filter((t) => t.cat === c.id).length }))} />
       </div>
       <div className="row">
         <Search value={q} onChange={setQ} placeholder="Buscar ajuste..." />
         <select className="inp" value={filter} onChange={(e) => setFilter(e.target.value)}>
-          <option value="all">Todos</option><option value="rec">Recomendados</option><option value="on">Aplicados</option><option value="off">Não aplicados</option>
+          <option value="all">Todos</option><option value="on">Aplicados</option><option value="off">Não aplicados</option>
         </select>
         <span className="muted small">{appliedCount} de {all.length} aplicados {status.loading && '· verificando...'}</span>
         <div className="spacer" />

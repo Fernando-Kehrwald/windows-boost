@@ -23,15 +23,7 @@ export default function Dashboard({ go, info, gm }) {
   async function quick(kind) {
     setBusy(kind);
     try {
-      if (kind === 'rec') {
-        const list = await call('tweaks.list');
-        const rec = list.filter((t) => t.rec && !t.link);
-        if (!(await confirm({ title: 'Aplicar ajustes recomendados', text: `Serão aplicados ${rec.length} ajustes marcados como recomendados. Um ponto de restauração é criado antes.`, list: rec.map((t) => t.name), ok: 'Aplicar' }))) return;
-        const r = await call('tweaks.apply', rec.map((t) => t.id));
-        const ok = Object.values(r).filter((x) => x.ok).length;
-        toast(`${ok} de ${rec.length} ajustes aplicados${Object.values(r).some((x) => x.ok && x.reboot) ? ' — reinicie para concluir' : ''}.`, ok === rec.length ? 'ok' : 'warn');
-        applied.reload();
-      } else if (kind === 'ram') {
+      if (kind === 'ram') {
         const r = await call('ram.clean');
         toast(`Memória liberada: ${fmtBytes(r.freed)}`);
       } else if (kind === 'clean') {

@@ -8,10 +8,8 @@ const DEFAULTS = {
     closeToTray: true,
     startMinimized: false,
     startWithWindows: false,
-    keepTimerResolution: false,
     ramAuto: { enabled: false, minutes: 30, onlyBelowPercent: 0 },
     nvidiaInspectorPath: '',
-    scewinPath: '',
   },
   applied: {},          // id do ajuste -> { at, backup, state }
   regBackups: [],       // { id, at, label, file }
@@ -19,6 +17,7 @@ const DEFAULTS = {
   gameMode: { games: [], auto: false, options: null, perGame: {} },
   gameSession: null,    // sessão ativa do Modo Jogo (para recuperar após queda)
   customCleanFolders: [],
+  advisorApplied: null,  // último plano aplicado pela Otimização automática
   lastRestorePointAt: 0,
 };
 

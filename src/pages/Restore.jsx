@@ -41,7 +41,7 @@ export default function Restore() {
       </Card>
       <Card className="flush" title="Backups do Registro (.reg)" icon="sliders" actions={<Button small icon="folder" onClick={() => call('app.openBackups')}>Abrir pasta</Button>}>
         <div style={{ height: 6 }} />
-        {!(regs.data || []).length ? <Empty title="Nenhum backup">São criados automaticamente pela Limpeza do Registro, Modo MSI e Desinstalador.</Empty> : regs.data.map((b) => (
+        {!(regs.data || []).length ? <Empty title="Nenhum backup">São criados automaticamente pela Limpeza (Registro e históricos).</Empty> : regs.data.map((b) => (
           <div className="list-item" key={b.id}>
             <div style={{ flex: 1, minWidth: 0 }}><strong>{b.label}</strong>{!b.exists && <Badge tone="danger">arquivo sumiu</Badge>}<div className="muted small mono trunc">{fmtDate(b.at)} · {b.file}</div></div>
             <Button small icon="undo" disabled={!b.exists} loading={busy === b.id} onClick={() => regRestore(b)}>Restaurar</Button>

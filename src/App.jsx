@@ -6,13 +6,9 @@ import Dashboard from './pages/Dashboard';
 import Tweaks from './pages/Tweaks';
 import AutoOptimize from './pages/AutoOptimize';
 import GameMode from './pages/GameMode';
-import Hardware from './pages/Hardware';
-import Bios from './pages/Bios';
-import Drivers from './pages/Drivers';
 import Cleanup from './pages/Cleanup';
 import Ram from './pages/Ram';
 import Debloat from './pages/Debloat';
-import Apps from './pages/Apps';
 import Dns from './pages/Dns';
 import Utilities from './pages/Utilities';
 import Restore from './pages/Restore';
@@ -22,17 +18,12 @@ const NAV = [
   { sec: 'Geral' },
   { id: 'home', label: 'Início', icon: 'home', C: Dashboard },
   { id: 'auto', label: 'Otimização automática', icon: 'bolt', C: AutoOptimize },
-  { id: 'tweaks', label: 'Ajustes', icon: 'sliders', C: Tweaks },
   { id: 'game', label: 'Modo Jogo', icon: 'game', C: GameMode },
-  { sec: 'Sistema' },
-  { id: 'hardware', label: 'Hardware', icon: 'cpu', C: Hardware },
-  { id: 'bios', label: 'BIOS', icon: 'bios', C: Bios },
-  { id: 'drivers', label: 'Drivers', icon: 'driver', C: Drivers },
+  { id: 'tweaks', label: 'Ajustes', icon: 'sliders', C: Tweaks },
   { sec: 'Manutenção' },
   { id: 'clean', label: 'Limpeza', icon: 'broom', C: Cleanup },
   { id: 'ram', label: 'Memória RAM', icon: 'memory', C: Ram },
   { id: 'debloat', label: 'Remover Apps', icon: 'trashapp', C: Debloat },
-  { id: 'apps', label: 'Aplicativos', icon: 'download', C: Apps },
   { sec: 'Ferramentas' },
   { id: 'dns', label: 'Gerenciador DNS', icon: 'globe', C: Dns },
   { id: 'utils', label: 'Utilitários', icon: 'wrench', C: Utilities },
@@ -50,7 +41,7 @@ export default function App() {
     callQuiet('app.info').then(setInfo).catch(() => {});
     return on('gamemode', setGm);
   }, []);
-  const cur = NAV.find((n) => n.id === page) || NAV[1];
+  const cur = NAV.find((n) => n.id === page && n.C) || NAV[1];
   const Page = cur.C;
   return (
     <div className="app">

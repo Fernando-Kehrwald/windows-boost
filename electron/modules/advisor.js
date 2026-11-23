@@ -89,7 +89,6 @@ function decide(f) {
   if (f.faceit) S('hvci', 'O anti-cheat do FACEIT está instalado e não abre com a Integridade de Memória desligada.');
   else if (f.vanguard) S('hvci', 'O Vanguard (VALORANT) está instalado e pode exigir os recursos de segurança do Windows 11.');
   else O('hvci', 'Pode render alguns % de FPS (mais em CPUs antigas), mas reduz a proteção do sistema contra drivers maliciosos.');
-  S('defender_realtime', 'Deixa o PC sem proteção; o ganho em jogos é mínimo.');
   A('menu_delay', 'Menus abrem instantaneamente.');
   A('visual_effects', 'Menos animações e efeitos = menos trabalho para a GPU e interface mais rápida.');
   A('logon_blur', 'Remove um efeito desnecessário.');
@@ -131,32 +130,81 @@ function decide(f) {
   S('onedrive', 'Remove a sincronização dos seus arquivos — só faça se você não usa o OneDrive.');
   O('store_search', 'Remove sugestões da Store na busca; se a Store der erro, desfaça.');
   O('wpbt', 'Impede utilitários do fabricante de se reinstalarem sozinhos.');
-  S('rdp_warnings', 'Reduz a proteção e não afeta desempenho.');
   S('debloat', 'Escolha os apps na aba Remover Apps.');
 
-  // ---------- exclusivos da aba Hardware ----------
+  // ---------- GPU / agendador ----------
   A('hw_mmcss', 'O agendador multimídia passa a priorizar a tarefa "Games" (CPU, GPU e disco).');
   desk && f.dGpu ? A('hw_gpu_latency', 'Desktop com GPU dedicada: a placa sai mais rápido dos estados de economia.') : S('hw_gpu_latency', f.laptop ? NB : 'Sem placa de vídeo dedicada.');
-  S('hw_storage', 'Desativa a otimização agendada, que também faz o TRIM dos SSDs. Os itens úteis dele já estão no plano.');
-  S('hw_power_plan', 'Equivalente ao "Desempenho Máximo", que já está no plano.');
   return out;
 }
+
+// Grupos por BENEFÍCIO (o que a pessoa sente) e nomes em linguagem simples.
+const GROUPS = [
+  { id: 'fps', title: 'Mais FPS e menos travadas', icon: 'game' },
+  { id: 'input', title: 'Mira e resposta do mouse e teclado', icon: 'mouse' },
+  { id: 'heat', title: 'Temperatura, energia e bateria', icon: 'timer' },
+  { id: 'net', title: 'Internet com menos atraso', icon: 'net' },
+  { id: 'bg', title: 'Menos coisas rodando escondidas', icon: 'shield' },
+  { id: 'sys', title: 'Windows mais leve e rápido', icon: 'bolt' },
+];
+const FRIENDLY = {
+  ultimate_power: ['fps', 'Processador sempre pronto no máximo'], services_manual: ['bg', 'Serviços do Windows só iniciam quando precisam'],
+  core_parking: ['fps', 'Todos os núcleos do processador sempre acordados'], cooling_active: ['heat', 'Ventoinhas aceleram antes de o PC perder desempenho'],
+  cpu_max_99: ['heat', 'Processador sem turbo (esquenta bem menos)'], dynamic_tick: ['fps', 'Relógio interno do Windows sempre ativo'],
+  global_timer: ['fps', 'Timer de alta precisão vale para o sistema todo'], win32_priority: ['fps', 'Mais tempo de processador para o jogo aberto'],
+  svchost_split: ['sys', 'Serviços do Windows agrupados (menos processos)'], sysmain: ['sys', 'Sem pré-carregamento de programas (SysMain)'],
+  memory_compression: ['fps', 'Memória sem compressão (menos trabalho para a CPU)'], paging_executive: ['sys', 'O essencial do Windows fica sempre na RAM'],
+  fast_startup: ['sys', 'Desligamento completo do Windows'], hibernation: ['sys', 'Hibernação desligada (libera vários GB)'],
+  disable_8dot3: ['sys', 'Sem nomes curtos antigos de arquivos'], last_access: ['sys', 'Menos escritas no disco'],
+  reserved_storage: ['sys', 'Espaço reservado do Windows liberado'], storage_sense: ['sys', 'Limpeza automática do Windows'],
+  bg_apps: ['bg', 'Apps da Store não rodam escondidos'], hvci: ['fps', 'Integridade de Memória desligada'],
+  menu_delay: ['sys', 'Menus abrem na hora'], visual_effects: ['sys', 'Menos animações e efeitos visuais'], logon_blur: ['sys', 'Tela de login sem desfoque'],
+  usb_suspend: ['input', 'USB nunca "dorme" (sem atraso no mouse e headset)'], standby_network: ['heat', 'Wi-Fi desligado quando o notebook dorme'],
+  s3_sleep: ['heat', 'Trocar o tipo de suspensão'],
+  mouse_accel: ['input', 'Mira consistente (sem aceleração do mouse)'], input_queue: ['input', 'Fila de entrada menor para mouse e teclado'],
+  keyboard_repeat: ['input', 'Teclado mais responsivo'], sticky_keys: ['input', 'Sem a janela das Teclas de Aderência no meio do jogo'],
+  game_mode: ['fps', 'Modo de Jogo do Windows ligado'], hags: ['fps', 'Placa de vídeo agenda o próprio trabalho (HAGS)'],
+  fso: ['fps', 'Tela cheia exclusiva forçada'], windowed_opt: ['fps', 'Menos atraso em jogos em janela/sem borda'],
+  mpo: ['fps', 'Multiplane Overlay desligado'], xbox_gamebar: ['bg', 'Xbox Game Bar desligada'], remove_game_apps: ['bg', 'Apps Xbox removidos'],
+  nvidia_profile: ['fps', 'Painel NVIDIA no modo desempenho'], amd_opt: ['fps', 'Driver AMD com menos latência'],
+  network_opt: ['net', 'Conexão (TCP) ajustada para menos atraso'], prefer_ipv4: ['net', 'Preferir IPv4'], teredo: ['net', 'Teredo desligado'],
+  disable_ipv6: ['net', 'IPv6 desligado'], delivery_opt: ['net', 'Sua internet não envia atualizações para outros PCs'],
+  wifi_sense: ['net', 'Não conecta sozinho em Wi-Fi aberto'],
+  telemetry: ['bg', 'Sem envio de dados de uso para a Microsoft'], activity_history: ['bg', 'Sem histórico de atividades'],
+  location: ['bg', 'Localização desligada'], copilot: ['bg', 'Copilot removido'], recall: ['bg', 'Sem Windows Recall (capturas de tela constantes)'],
+  consumer_features: ['bg', 'Windows não instala apps sugeridos sozinho'], bing: ['bg', 'Busca do Iniciar só no seu PC (sem Bing)'],
+  onedrive: ['bg', 'Remover o OneDrive'], store_search: ['bg', 'Sem sugestões da Store na busca'], wpbt: ['bg', 'Fabricante não instala programas pelo firmware'],
+  debloat: ['bg', 'Remover apps pré-instalados'],
+  hw_mmcss: ['fps', 'Windows prioriza jogos (CPU, GPU e disco)'], hw_gpu_latency: ['fps', 'Placa de vídeo sai mais rápido da economia de energia'],
+};
 
 async function analyze() {
   const f = await facts();
   const list = Object.fromEntries(tweaks.list().map((t) => [t.id, t]));
-  const plan = decide(f).filter((d) => list[d.id]).map((d) => ({ ...d, name: list[d.id].name, risk: list[d.id].risk, reboot: list[d.id].reboot, noUndo: list[d.id].noUndo, cat: list[d.id].cat }));
+  const plan = decide(f).filter((d) => list[d.id]).map((d) => {
+    const [group, title] = FRIENDLY[d.id] || ['sys', list[d.id].name];
+    return { ...d, group, title, name: list[d.id].name, risk: list[d.id].risk, reboot: list[d.id].reboot, noUndo: list[d.id].noUndo };
+  });
   log.info(`Otimização automática: ${plan.filter((p) => p.action === 'apply').length} recomendados, ${plan.filter((p) => p.action === 'optional').length} opcionais.`);
   return {
     profile: {
-      tipo: f.laptop ? 'Notebook' : 'Desktop', cpu: f.cpu, gpu: f.gpu, ram: `${f.ramGB} GB`, os: `${f.os || 'Windows'} (build ${f.build})`,
+      tipo: f.laptop ? 'Notebook' : 'Desktop',
+      ramGB: f.ramGB, cpu: f.cpu, gpu: f.gpu, ram: `${f.ramGB} GB`, os: `${f.os || 'Windows'} (build ${f.build})`,
       disco: f.allSsd ? 'Só SSD' : f.anyHdd ? 'Tem HD mecânico' : f.sysMedia,
       x3d: f.x3d, hybrid: f.hybrid,
       anticheats: [f.vanguard && 'Vanguard (Riot)', f.faceit && 'FACEIT', f.eac && 'Easy Anti-Cheat', f.battleye && 'BattlEye', f.eaac && 'EA Anti-Cheat'].filter(Boolean),
       virtualizacao: [f.wsl && 'WSL', f.vmp && 'Plataforma de VM', f.hyperv && 'Hyper-V', f.sandbox && 'Sandbox', f.docker && 'Docker'].filter(Boolean),
     },
+    groups: GROUPS,
+    laptop: !!f.laptop,
     plan,
   };
 }
 
-module.exports = { analyze, decide };
+function lastApplied() { return require('../store').get().advisorApplied; }
+function saveApplied(ids) {
+  require('../store').update((d) => { d.advisorApplied = { at: Date.now(), ids }; });
+  return lastApplied();
+}
+
+module.exports = { analyze, decide, lastApplied, saveApplied, GROUPS, FRIENDLY };

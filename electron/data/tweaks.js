@@ -228,15 +228,6 @@ Start-Service SysMain -ErrorAction SilentlyContinue`,
     reg: [R('HKLM\\SYSTEM\\CurrentControlSet\\Control\\DeviceGuard\\Scenarios\\HypervisorEnforcedCodeIntegrity', 'Enabled', 0, { def: 1 })],
   },
   {
-    id: 'defender_realtime', cat: 'desempenho', name: 'Desativar proteção em tempo real do Defender', risk: 'risky',
-    desc: 'Set-MpPreference -DisableRealtimeMonitoring $true.',
-    warn: 'Deixa o PC sem proteção em tempo real. Exige desligar a "Proteção contra Adulteração" antes, e o Windows pode religar sozinho.',
-    apply: `Set-MpPreference -DisableRealtimeMonitoring $true
-if (-not (Get-MpPreference).DisableRealtimeMonitoring) { throw 'O Windows bloqueou a alteração. Desative a Proteção contra Adulteração em Segurança do Windows e tente de novo.' }`,
-    unapply: 'Set-MpPreference -DisableRealtimeMonitoring $false',
-    check: '(Get-MpPreference).DisableRealtimeMonitoring',
-  },
-  {
     id: 'menu_delay', cat: 'desempenho', name: 'Atraso de menu zero', risk: 'safe',
     desc: 'MenuShowDelay = 0: submenus abrem instantaneamente.',
     reg: [RS('HKCU\\Control Panel\\Desktop', 'MenuShowDelay', '0', { def: '400' })],
@@ -578,7 +569,7 @@ try { $state.samples = (Get-MpPreference).SubmitSamplesConsent; Set-MpPreference
   {
     id: 'onedrive', cat: 'privacidade', name: 'Remover OneDrive', risk: 'caution', noUndo: true,
     desc: 'Desinstala o OneDrive, limpa restos do programa e restaura as pastas do usuário (Área de Trabalho, Documentos, Imagens...) para os locais padrão.',
-    warn: 'Seus arquivos NÃO são apagados: o que estava sincronizado continua em %USERPROFILE%\\OneDrive. Mova-os de volta manualmente se quiser. Para reinstalar, use a aba Aplicativos.',
+    warn: 'Seus arquivos NÃO são apagados: o que estava sincronizado continua em %USERPROFILE%\\OneDrive. Mova-os de volta manualmente se quiser. Para reinstalar, baixe o OneDrive no site da Microsoft.',
     apply: `Get-Process OneDrive -ErrorAction SilentlyContinue | Stop-Process -Force
 Start-Sleep -Seconds 2
 $setups = @("$env:SystemRoot\\System32\\OneDriveSetup.exe", "$env:SystemRoot\\SysWOW64\\OneDriveSetup.exe")
@@ -609,12 +600,6 @@ if (Test-Path $db) { Run icacls $db /remove:d '*S-1-1-0' | Out-Null }`,
     desc: 'Impede que o fabricante do PC execute programas a partir do firmware a cada boot (Windows Platform Binary Table).',
     warn: 'Utilitários do fabricante (ex.: instaladores automáticos de drivers ASUS Armoury Crate / Lenovo) deixam de se reinstalar sozinhos — normalmente é o que se quer.',
     reg: [R('HKLM\\SYSTEM\\CurrentControlSet\\Control\\Session Manager', 'DisableWpbtExecution', 1)],
-  },
-  {
-    id: 'rdp_warnings', cat: 'privacidade', name: 'Desativar avisos de arquivos RDP', risk: 'caution',
-    desc: 'Remove os avisos de segurança ao abrir arquivos .rdp não assinados.',
-    warn: 'Reduz a proteção contra arquivos .rdp maliciosos (phishing). Só use se você abre .rdp de fontes confiáveis.',
-    reg: [R('HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows NT\\Terminal Services\\Client', 'RedirectionWarningDialogVersion', 1)],
   },
   {
     id: 'debloat', cat: 'privacidade', name: 'Debloat do Windows', rec: true, risk: 'safe', link: 'debloat',
@@ -774,9 +759,9 @@ Stop-Process -Name explorer -Force -ErrorAction SilentlyContinue`,
   },
   {
     id: 'pwsh_default', cat: 'geral', name: 'PowerShell 7 como padrão', risk: 'safe',
-    desc: 'Define o PowerShell 7 como perfil padrão do Windows Terminal. Se o PowerShell 7 não estiver instalado, instale-o pela aba Aplicativos (o app não baixa nada sozinho).',
+    desc: 'Define o PowerShell 7 como perfil padrão do Windows Terminal. Se o PowerShell 7 não estiver instalado, instale-o pela Microsoft Store (o app não baixa nada sozinho).',
     apply: `$pw = @("$env:ProgramFiles\\PowerShell\\7\\pwsh.exe") | Where-Object { Test-Path $_ }
-if (-not $pw) { throw 'PowerShell 7 não está instalado. Instale pela aba Aplicativos (Microsoft.PowerShell) e aplique de novo.' }
+if (-not $pw) { throw 'PowerShell 7 não está instalado. Instale pela Microsoft Store e aplique de novo.' }
 $files = @(Get-ChildItem "$env:LOCALAPPDATA\\Packages\\Microsoft.WindowsTerminal*_8wekyb3d8bbwe\\LocalState\\settings.json" -ErrorAction SilentlyContinue)
 if (-not $files) { throw 'Windows Terminal não encontrado (ou nunca foi aberto). Abra-o uma vez e tente de novo.' }
 $state = @{ files = @() }
@@ -796,10 +781,10 @@ foreach ($f in $files) {
   },
 
   // =====================================================================
-  // AJUSTES EXCLUSIVOS DA ABA HARDWARE (não contam nos 81)
+  // AJUSTES DE GPU / AGENDADOR (antes ficavam na aba Hardware)
   // =====================================================================
   {
-    id: 'hw_gpu_latency', cat: 'hardware', name: 'Latência de energia da GPU', risk: 'caution', reboot: true, hw: ['gpu'],
+    id: 'hw_gpu_latency', cat: 'jogos', name: 'Latência de energia da GPU', risk: 'caution', reboot: true, hw: ['gpu'],
     desc: '20 chaves DefaultD3TransitionLatency*/DefaultLatencyTolerance* = 1 em GraphicsDrivers\\Power (a GPU sai mais rápido dos estados de economia).',
     warn: 'A GPU tende a gastar mais energia em repouso.',
     reg: ['DefaultD3TransitionLatencyActivelyUsed', 'DefaultD3TransitionLatencyIdleLongTime', 'DefaultD3TransitionLatencyIdleMonitorOff',
@@ -812,44 +797,13 @@ foreach ($f in $files) {
     ].map((n) => R('HKLM\\SYSTEM\\CurrentControlSet\\Control\\GraphicsDrivers\\Power', n, 1)),
   },
   {
-    id: 'hw_mmcss', cat: 'hardware', name: 'Agendador multimídia (MMCSS)', risk: 'safe', hw: ['gpu', 'cpu'],
+    id: 'hw_mmcss', cat: 'jogos', name: 'Agendador multimídia (MMCSS)', risk: 'safe', hw: ['gpu', 'cpu'],
     desc: 'SystemResponsiveness = 0, NetworkThrottlingIndex desligado, tarefa "Games" com GPU Priority 8, Priority 6, Clock Rate 10000, categoria High.',
     reg: [
       R(MMCSS, 'SystemResponsiveness', 0, { def: 20 }), R(MMCSS, 'NetworkThrottlingIndex', 4294967295, { def: 10 }),
       R(GAMES, 'GPU Priority', 8), R(GAMES, 'Priority', 6), R(GAMES, 'Clock Rate', 10000),
       RS(GAMES, 'Scheduling Category', 'High'), RS(GAMES, 'SFIO Priority', 'High'),
     ],
-  },
-  {
-    id: 'hw_storage', cat: 'hardware', name: 'Otimização de armazenamento', risk: 'safe', reboot: true, hw: ['storage'],
-    desc: 'Desliga "último acesso" e nomes 8.3 do NTFS, DontVerifyRandomDrivers = 1 e desativa a desfragmentação agendada (o TRIM manual continua disponível abaixo).',
-    warn: 'A tarefa agendada de otimização também faz o TRIM automático dos SSDs. Se aplicar, rode o TRIM manualmente de vez em quando (abaixo).',
-    reg: [
-      R(FS, 'NtfsDisableLastAccessUpdate', 2147483649, { def: 2147483650 }),
-      R(FS, 'NtfsDisable8dot3NameCreation', 1, { def: 2 }),
-      R(FS, 'DontVerifyRandomDrivers', 1),
-    ],
-    apply: `$t = Get-ScheduledTask -TaskPath '\\Microsoft\\Windows\\Defrag\\' -TaskName 'ScheduledDefrag' -ErrorAction SilentlyContinue
-$state = @{ wasEnabled = ($t -and $t.State -ne 'Disabled') }
-if ($state.wasEnabled) { $t | Disable-ScheduledTask | Out-Null }`,
-    unapply: `if ($state -and $state.wasEnabled) { Enable-ScheduledTask -TaskPath '\\Microsoft\\Windows\\Defrag\\' -TaskName 'ScheduledDefrag' -ErrorAction SilentlyContinue | Out-Null }`,
-  },
-  {
-    id: 'hw_power_plan', cat: 'hardware', name: 'Plano de energia "Desempenho Máximo (Windows Boost)"', risk: 'caution', hw: ['cpu', 'gpu'],
-    desc: 'Cria um plano próprio a partir do Ultimate Performance, com Core Parking desligado e USB Selective Suspend desligado, e o ativa.',
-    apply: `$o = Run powercfg /getactivescheme
-$state = @{ previous = [regex]::Match($o, '[0-9a-fA-F-]{36}').Value }
-$dup = Run powercfg -duplicatescheme e9a42b02-d5df-448d-aa00-03f14749eb61
-$guid = [regex]::Match($dup, '[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}').Value
-if (-not $guid) { throw "Não foi possível criar o plano: $dup" }
-Exec powercfg /changename $guid 'Desempenho Máximo (Windows Boost)' 'Criado pelo Windows Boost' | Out-Null
-Exec powercfg /setactive $guid | Out-Null
-Set-PowerIndex $PWR.SUB_PROCESSOR $PWR.CPMINCORES 100 100
-Set-PowerIndex $PWR.SUB_USB $PWR.USBSUSPEND 0 0
-$state.created = $guid`,
-    unapply: `if ($state -and $state.previous) { Exec powercfg /setactive $state.previous | Out-Null }
-if ($state -and $state.created) { Run powercfg /delete $state.created | Out-Null }`,
-    check: `(Run powercfg /getactivescheme) -match 'Windows Boost'`,
   },
 ];
 

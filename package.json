@@ -1,7 +1,7 @@
 {
   "name": "windows-boost",
   "productName": "Windows Boost",
-  "version": "1.0.2",
+  "version": "1.1.0",
   "description": "Otimizador para Windows 10/11 — 100% local, sem login, sem licença e sem envio de dados.",
   "main": "electron/main.js",
   "author": "Windows Boost",

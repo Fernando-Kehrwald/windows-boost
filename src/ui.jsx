@@ -143,20 +143,12 @@ export function ToastHost() {
 export const RISK = { safe: { tone: 'ok', label: 'Seguro' }, caution: { tone: 'warn', label: 'Cautela', icon: 'warn' }, risky: { tone: 'danger', label: 'Arriscado', icon: 'stop' } };
 export function TweakRow({ t, applied, busy, onToggle, selected, onSelect, onLink }) {
   const [open, setOpen] = useState(false);
-  const r = RISK[t.risk] || RISK.safe;
   return (
     <div className={`trow ${applied ? 'applied' : ''} ${open ? 'open' : ''}`}>
       <div className="trow-main" onClick={() => setOpen(!open)}>
         {onSelect && <Check checked={selected} onChange={onSelect} disabled={!!t.link} />}
         <div className="trow-info">
-          <div className="trow-name">
-            <span>{t.name}</span>
-            {t.rec && <Badge tone="accent" icon="star" title="Recomendado">Recomendado</Badge>}
-            {t.risk !== 'safe' && <Badge tone={r.tone} icon={r.icon}>{r.label}</Badge>}
-            {t.reboot && <Badge tone="muted" icon="reboot" title="Pede reinício">Reinício</Badge>}
-            {t.noUndo && <Badge tone="danger" icon="x" title="Sem desfazer automático">Sem desfazer</Badge>}
-            {t.win11 && <Badge tone="muted">Win 11</Badge>}
-          </div>
+          <div className="trow-name"><span>{t.name}</span></div>
           <div className="trow-desc">{t.desc}</div>
         </div>
         <div className="trow-act" onClick={(e) => e.stopPropagation()}>

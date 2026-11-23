@@ -24,12 +24,10 @@ export default function Settings({ info }) {
           <Row k="startWithWindows" title="Iniciar com o Windows" desc="Cria uma tarefa agendada com privilégio elevado (sem pedir UAC a cada login)." />
           <Row k="startMinimized" title="Iniciar minimizado na bandeja" />
         </Card>
-        <Card title="Ferramentas externas (opcionais)" icon="wrench">
+        <Card title="Ferramenta opcional" icon="wrench">
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <div><strong>NVIDIA Profile Inspector</strong><div className="muted small">Necessário para "Otimizar configurações NVIDIA". Gratuito e de código aberto — baixe você mesmo (ou pela aba Aplicativos) e indique o .exe.</div>
+            <div><strong>NVIDIA Profile Inspector</strong><div className="muted small">Necessário para "Otimizar configurações NVIDIA". Gratuito e de código aberto — se quiser usar, baixe no GitHub do projeto (Orbmu2k) e indique o .exe.</div>
               <div className="pathbox" style={{ marginTop: 6 }}><code>{d.nvidiaInspectorPath || 'não definido'}</code><Button small icon="folder" onClick={async () => { const f = await call('dialog.file', [{ name: 'nvidiaProfileInspector', extensions: ['exe'] }], 'nvidiaProfileInspector.exe'); if (f) set({ nvidiaInspectorPath: f }); }}>Escolher</Button></div></div>
-            <div><strong>SCEWIN (placas com BIOS AMI)</strong><div className="muted small">Pasta com SCEWIN_64.exe, amifldrv64.sys e amigendrv64.sys. Ferramenta proprietária da AMI — não é distribuída com o app.</div>
-              <div className="pathbox" style={{ marginTop: 6 }}><code>{d.scewinPath || 'não definido'}</code><Button small icon="folder" onClick={async () => { const f = await call('dialog.folder', 'Pasta do SCEWIN'); if (f) set({ scewinPath: f }); }}>Escolher</Button></div></div>
           </div>
         </Card>
       </div>

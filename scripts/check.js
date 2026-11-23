@@ -82,29 +82,13 @@ function check(src, label) {
   await gm.stop().catch(() => {});
   await gm.detect().catch(() => {});
   for (const k of ['fso', 'dpi', 'gpu', 'segheap']) { await gm.setPerGame('x', k, true).catch(() => {}); await gm.setPerGame('x', k, false).catch(() => {}); }
-  const sys = require('../electron/modules/system');
-  // monitor/timer usam spawnPersistent (IS_WIN falso aqui) — captura direta das strings:
-  await sys.timerInfo().catch(() => {}); await sys.msiList().catch(() => {}); await sys.msiSet('PCI\\X', true).catch(() => {});
-  await sys.volumes().catch(() => {}); await sys.optimizeVolume('C', 'trim').catch(() => {}); await sys.peripherals().catch(() => {});
   const cl = require('../electron/modules/cleaner');
   const ids = cl.list().map((x) => x.id);
   await cl.scan(ids).catch(() => {}); await cl.clean(ids, { closeApps: true }).catch(() => {}); await cl.regScan().catch(() => {});
   await cl.regClean([]).catch(() => {});
   const ram = require('../electron/modules/ram'); await ram.info().catch(() => {}); await ram.clean().catch(() => {});
   const db = require('../electron/modules/debloat'); await db.list().catch(() => {}); await db.remove(['A']).catch(() => {}); await db.restoreApp('A').catch(() => {});
-  const ap = require('../electron/modules/apps'); await ap.managers().catch(() => {});
-  ps.json = async (script) => { captured.push(script); return { winget: true }; };
-  await ap.install(['Mozilla.Firefox']).catch(() => {});
-  ps.json = async (script) => { captured.push(script); return {}; };
-  await ap.programs().catch(() => {}); await ap.uninstall([{ key: 'HKLM\\X', name: 'P', uninstall: '"C:\\p\\un.exe" /S', quiet: '' }]).catch(() => {});
-  await ap.leftovers([{ name: 'Prog 1.2 (x64)', publisher: 'Acme Inc.', location: 'C:\\x', key: 'HKLM\\X' }]).catch(() => {});
-  await ap.removeLeftovers([{ kind: 'pasta', path: 'C:\\x' }, { kind: 'registro', path: 'HKCU\\Software\\X' }]).catch(() => {});
-  await ap.updates().catch(() => {}); await ap.removeUpdate('KB123').catch(() => {});
   const dns = require('../electron/modules/dns'); await dns.current().catch(() => {}); await dns.apply({ v4: ['1.1.1.1'] }).catch(() => {}); await dns.apply(null).catch(() => {});
-  const bios = require('../electron/modules/bios'); await bios.info().catch(() => {}); await bios.bootState().catch(() => {});
-  for (const k of ['disabledynamictick', 'tscsyncpolicy', 'hypervisoroff']) { await bios.bootSet(k, true).catch(() => {}); await bios.bootSet(k, false).catch(() => {}); }
-  await bios.rebootToFirmware().catch(() => {});
-  const dr = require('../electron/modules/drivers'); await dr.list().catch(() => {}); await dr.installInf('C:\\drv').catch(() => {});
   await restore.createRestorePoint('x').catch(() => {}); await restore.listRestorePoints().catch(() => {}); await restore.deleteRestorePoint(3).catch(() => {});
   await restore.backupRegistryKeys(['HKCU\\Software\\X'], 'x').catch(() => {});
   // utilitários dependem do módulo electron; captura via stub
@@ -115,8 +99,6 @@ function check(src, label) {
     await ut.powerPlans().catch(() => {});
   } catch (e) { console.log('utilities:', e.message); }
   // scripts persistentes (monitor/timer) lidos do código-fonte do módulo
-  const srcSys = fs.readFileSync(path.join(__dirname, '..', 'electron', 'modules', 'system.js'), 'utf8');
-  void srcSys;
 
   const prelude = fs.readFileSync(path.join(__dirname, '..', 'electron', 'ps', 'prelude.ps1'), 'utf8');
   let bad = 0;

@@ -16,11 +16,10 @@ Otimizador para Windows 10/11 voltado a desempenho em jogos, privacidade e limpe
 | Telemetria / analytics / crash report | Não existem. Os logs ficam só em arquivo local (`%APPDATA%\Windows Boost\logs`). |
 | Atualização automática | Não existe. |
 | Rede no app | A janela tem **todas as requisições de rede bloqueadas** (`webRequest` cancela tudo) e o Chromium roda com rede em segundo plano, componentes, pings e dicionários desligados. |
-| Ferramentas de terceiros | Nada é baixado sozinho (o original baixava o BleachBit do GitHub). O NVIDIA Profile Inspector e o SCEWIN são opcionais e você indica o caminho. |
+| Ferramentas de terceiros | Nada é baixado (o original baixava o BleachBit do GitHub). O NVIDIA Profile Inspector é opcional e você indica o caminho. |
 
 As únicas situações em que **algo** acessa a internet são ações explícitas do usuário, feitas por ferramentas do próprio Windows:
 
-- **Aplicativos → Instalar**: o `winget`/Chocolatey baixa o programa da fonte oficial (a telemetria do winget é desligada antes).
 - **DNS → Testar latência**: faz consultas DNS aos servidores da lista para medir o tempo.
 - **Utilitários → DISM RestoreHealth** e **Windows Update**: o próprio Windows pode baixar arquivos de reparo/atualizações.
 - Botões "site do fabricante" abrem a página no seu navegador.
@@ -64,21 +63,17 @@ Verificação estática dos ~255 scripts PowerShell gerados: `npm run check`.
 
 | Aba | O que faz |
 |---|---|
-| **Otimização automática** | Lê o hardware e o sistema (desktop/notebook, CPU — incluindo X3D e híbridas —, GPU, RAM, SSD/HD, versão do Windows, anti-cheats instalados, uso de virtualização) e monta um plano: **recomendados** (marcados), **opcionais** (com contrapartida, desmarcados) e **não recomendados para o seu PC**, sempre com o motivo. Nada muda até você confirmar. |
+| **Otimização automática** | A forma recomendada de usar o app. Analisa o PC (desktop/notebook, CPU — incluindo X3D e híbridas —, GPU, RAM, SSD/HD, Windows, anti-cheats, virtualização) e monta um plano em linguagem simples, agrupado pelo benefício (mais FPS, mira, temperatura, internet, segundo plano, Windows mais leve), com o motivo de cada item. Extras com contrapartida vêm desmarcados e há a lista do que **não** será mexido e por quê. Aplica com ponto de restauração e progresso por etapa; desfazer com um clique. |
 | **Início** | CPU, GPU, RAM, sistema, discos e uso em tempo real (CPU, RAM, GPU, VRAM e temperatura em NVIDIA); ações rápidas. |
-| **Ajustes** | 83 ajustes (desempenho, jogos, rede, privacidade, aparência, geral), cada um com nível de risco, aplicar/desfazer e verificação do estado real no sistema. |
+| **Ajustes** | Os 83 ajustes um por um, para quem quer escolher manualmente, com aplicar/desfazer e verificação do estado real no sistema. |
 | **Modo Jogo** | Detecta jogos (Steam, Epic, GOG, Ubisoft, EA, Battle.net, Riot, Rockstar, Xbox) e aplica otimizações só enquanto o jogo está aberto, desfazendo ao fechar. Manual ou automático. Recupera sozinho se o PC desligar no meio. |
-| **Hardware** | Abas GPU, CPU, RAM, Mouse e Teclado, Armazenamento, Timer e Modo MSI, com os ajustes de cada peça, resolução do timer, TRIM/desfragmentação e MSI por dispositivo (com backup). |
-| **BIOS** | Lê placa/BIOS/soquete/ACPI, guia de 38 ajustes com o caminho no menu de cada fabricante (ASUS, MSI, Gigabyte, ASRock), gravação direta na NVRAM via SCEWIN (placas AMI) com backup, conferência e restauração, ajustes de boot via `bcdedit` (com backup do BCD) e reinício direto na UEFI. |
-| **Drivers** | Inventário por categoria, atalhos para Windows Update (drivers opcionais) e sites dos fabricantes, e instalação de driver baixado (`pnputil`, com ponto de restauração). |
 | **Limpeza** | Limpeza com 1 clique e por item, com prévia do espaço: Windows (temporários, Prefetch, Lixeira, cache do Windows Update, miniaturas, relatórios de erro, dumps, shaders…), ~50 programas (navegadores Chromium e Firefox, Discord, Steam, Epic, Slack, Teams, VS Code, Office, Adobe, VLC, Java, Python…) e pastas personalizadas. Avisa se o programa está aberto e pode fechá-lo. Limpeza do Registro com backup `.reg`. |
 | **Memória RAM** | Working sets, lista modificada, standby (e standby de baixa prioridade) e cache do sistema, na hora ou agendado. |
 | **Remover Apps** | Seletor visual com ícone e descrição, presets Básico/Recomendado/Extremo, remoção da conta e da imagem do sistema e aba Removidos para restaurar. |
-| **Aplicativos** | Instalação em lote (winget/Chocolatey) com importar/exportar lista; desinstalador em lote com ponto de restauração opcional e busca de restos (pastas → Lixeira, registro → backup); remoção de atualizações do Windows. |
 | **Gerenciador DNS** | Cloudflare, Google, Quad9, OpenDNS, AdGuard, automático (DHCP) ou personalizado; teste de latência; aplica em todos os adaptadores ativos e limpa o cache DNS. |
 | **Utilitários** | Limpeza de Disco, Sensor de Armazenamento, msinfo32, inicialização, reiniciar driver gráfico/Explorer/Pesquisa/áudio, flushdns/release/renew, corrigir Bluetooth, SFC, DISM, CHKDSK, redefinir pilha de rede, pausar/retomar Windows Update, plano de energia. |
 | **Restaurar** | Criar, restaurar e apagar pontos de restauração (inclusive todos de uma vez), backups do Registro feitos pelo app e lista dos ajustes aplicados (desfazer/reaplicar). |
-| **Configurações** | Ponto de restauração automático, bandeja, iniciar com o Windows (tarefa agendada elevada), iniciar minimizado, caminhos das ferramentas opcionais, logs. |
+| **Configurações** | Ponto de restauração automático, bandeja, iniciar com o Windows (tarefa agendada elevada), iniciar minimizado, caminho do NVIDIA Profile Inspector (opcional), logs. |
 
 ## Modo Jogo e anti-cheat (VAC, FACEIT, Vanguard, EAC, BattlEye)
 
@@ -116,7 +111,19 @@ O Guardião faz isso sozinho enquanto o jogo está aberto:
 - **Aprende por jogo**: o nível que funcionou vira o ponto de partida da próxima sessão (e relaxa sozinho se não esquentar mais).
 - Ao fechar o jogo, o plano de energia volta **exatamente** ao que era (também após queda de energia).
 
-Também há ajustes fixos na aba Ajustes: **Política de resfriamento ativa** e **Limitar o processador a 99%**.
+Também há ajustes fixos: **Política de resfriamento ativa** e **Limitar o processador a 99%** (a Otimização automática os sugere em notebooks).
+
+## Novidades da 1.1.0 — mais simples e mais seguro
+
+- **Otimização automática redesenhada** e agora em destaque: análise animada, plano em linguagem simples agrupado pelo benefício,
+  contador de progresso, aplicação por etapas, tela final com próximos passos (Modo Jogo automático, Limpeza, Remover Apps)
+  e **desfazer tudo** com um clique.
+- **Removidas** as abas Hardware, BIOS, Drivers e Aplicativos (gravar na BIOS, instalar drivers e desinstalar programas são
+  operações de risco para quem não é técnico; para baixar programas, use o site oficial de cada um).
+- Aba **Ajustes** sem classificações e sem "Aplicar recomendados" — quem não sabe o que escolher usa a Otimização automática.
+- Removidos os ajustes que só reduziam a segurança sem ganho de desempenho: desativar a proteção em tempo real do Defender e
+  os avisos de arquivos RDP. Removidos também "Otimização de armazenamento" (desativava o TRIM agendado dos SSDs) e o plano
+  de energia duplicado. Os ajustes de GPU/agendador que ficavam na aba Hardware agora estão em Ajustes → Jogos.
 
 ## Novidades da 1.0.2
 
@@ -152,7 +159,6 @@ Correções dos "pontos de atenção" (seção 16 do documento):
 - **Segment Heap** do Modo Jogo virou ajuste por jogo (precisa existir antes do jogo abrir; aplicar durante a sessão não teria efeito).
 - **BBR2** no Modo Jogo é opcional e desligado por padrão (em algumas builds atrapalha conexões locais).
 - **Limpeza de programas** usa um motor próprio em vez de baixar o BleachBit.
-- **Drivers** não consulta servidores da NVIDIA/AMD/Windows Update: o app lista o que está instalado e você escolhe onde buscar.
 
 Dois itens foram trocados porque dependiam de recursos não documentados:
 
@@ -167,8 +173,8 @@ electron/
   ps.js              executor PowerShell (arquivo .ps1 temporário + prelude)
   ps/prelude.ps1     funções auxiliares (registro com backup, powercfg, serviços, Appx)
   store.js, log.js   estado e logs locais
-  data/              ajustes, limpeza, apps, BIOS, debloat (definições)
-  modules/           tweaks, gamemode, system, cleaner, ram, debloat, apps, dns, bios, drivers, utilities, restore
+  data/              ajustes, limpeza, debloat (definições)
+  modules/           advisor (otimização automática), tweaks, gamemode, thermal (guardião), system, cleaner, ram, debloat, dns, utilities, restore
 src/                 interface React (páginas em src/pages)
 scripts/check.js     verificação estática dos scripts PowerShell gerados
 ```

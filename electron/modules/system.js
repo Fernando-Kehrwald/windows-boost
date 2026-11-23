@@ -3,7 +3,6 @@ const si = require('systeminformation');
 const ps = require('../ps');
 const store = require('../store');
 const log = require('../log');
-const restore = require('./restore');
 
 let staticCache = null;
 
@@ -85,82 +84,4 @@ async function disks() {
   return fsz.filter((f) => f.size > 0).map((f) => ({ mount: f.mount, size: f.size, used: f.used, use: f.use, fs: f.type }));
 }
 
-// ---------------- resolução do timer ----------------
-const TIMER_TYPE = `Add-Type -Namespace WB -Name TR -MemberDefinition '
-[DllImport("ntdll.dll")] public static extern int NtSetTimerResolution(uint DesiredResolution, bool SetResolution, out uint CurrentResolution);
-[DllImport("ntdll.dll")] public static extern int NtQueryTimerResolution(out uint MinimumResolution, out uint MaximumResolution, out uint CurrentResolution);'`;
-let timerProc = null;
-
-async function timerInfo() {
-  const r = await ps.json(`${TIMER_TYPE}
-$a=[uint32]0;$b=[uint32]0;$c=[uint32]0; [void][WB.TR]::NtQueryTimerResolution([ref]$a,[ref]$b,[ref]$c)
-Out-Json @{ coarsest = $a / 10000.0; finest = $b / 10000.0; current = $c / 10000.0 }`);
-  return { ...r, active: !!timerProc };
-}
-function timerStart() {
-  if (timerProc || !ps.IS_WIN) return !!timerProc;
-  timerProc = ps.spawnPersistent(`${TIMER_TYPE}
-$a=[uint32]0;$b=[uint32]0;$c=[uint32]0; [void][WB.TR]::NtQueryTimerResolution([ref]$a,[ref]$b,[ref]$c)
-[void][WB.TR]::NtSetTimerResolution($b, $true, [ref]$c)
-while ($true) { Start-Sleep -Seconds 3600 }`);
-  timerProc.on('close', () => { timerProc = null; });
-  log.info('Resolução do timer fixada no mínimo enquanto o app estiver aberto.');
-  return true;
-}
-function timerStop() {
-  if (timerProc) { try { timerProc.kill(); } catch {} timerProc = null; log.info('Resolução do timer devolvida ao padrão.'); }
-  return false;
-}
-
-// ---------------- Modo MSI ----------------
-async function msiList() {
-  const r = await ps.json(`$items = @()
-Get-PnpDevice -PresentOnly -ErrorAction SilentlyContinue | Where-Object { $_.InstanceId -like 'PCI\\*' } | ForEach-Object {
-  $base = "HKLM\\SYSTEM\\CurrentControlSet\\Enum\\$($_.InstanceId)\\Device Parameters\\Interrupt Management"
-  $msi = Get-RegValue "$base\\MessageSignaledInterruptProperties" 'MSISupported'
-  $lim = Get-RegValue "$base\\MessageSignaledInterruptProperties" 'MessageNumberLimit'
-  $prio = Get-RegValue "$base\\Affinity Policy" 'DevicePriority'
-  $items += @{ id = $_.InstanceId; name = $_.FriendlyName; cls = [string]$_.Class; msi = if ($null -eq $msi) { $null } else { [int]$msi -eq 1 }; limit = $lim; priority = $prio }
-}
-Out-Json @{ items = $items }`, { timeout: 60000 });
-  const rank = { Display: 0, Net: 1, USB: 2, SCSIAdapter: 3, HDC: 3, MEDIA: 4 };
-  return (r.items || []).sort((a, b) => (rank[a.cls] ?? 9) - (rank[b.cls] ?? 9) || String(a.name).localeCompare(String(b.name)));
-}
-async function msiSet(id, enabled) {
-  const key = `HKLM\\SYSTEM\\CurrentControlSet\\Enum\\${id}\\Device Parameters\\Interrupt Management`;
-  await restore.backupRegistryKeys([key], `Modo MSI: ${id}`);
-  await ps.run(`Set-RegValue ${ps.q(key + '\\MessageSignaledInterruptProperties')} 'MSISupported' ${enabled ? 1 : 0}`);
-  log.info(`Modo MSI ${enabled ? 'ligado' : 'desligado'} em ${id}`);
-  return true;
-}
-
-// ---------------- TRIM / desfragmentação ----------------
-async function volumes() {
-  const r = await ps.json(`$media = @{}
-Get-PhysicalDisk -ErrorAction SilentlyContinue | ForEach-Object { $media[[string]$_.DeviceId] = [string]$_.MediaType }
-$items = @()
-Get-Volume | Where-Object { $_.DriveLetter -and $_.DriveType -eq 'Fixed' } | ForEach-Object {
-  $dl = $_.DriveLetter; $type = 'Desconhecido'
-  try { $dn = (Get-Partition -DriveLetter $dl | Get-Disk).Number; if ($media.ContainsKey([string]$dn)) { $type = $media[[string]$dn] } } catch {}
-  $items += @{ letter = [string]$dl; label = $_.FileSystemLabel; fs = $_.FileSystem; size = $_.Size; free = $_.SizeRemaining; media = $type }
-}
-Out-Json @{ items = $items }`);
-  return r.items || [];
-}
-async function optimizeVolume(letter, mode) {
-  const l = String(letter).replace(/[^A-Za-z]/g, '').slice(0, 1);
-  const flag = mode === 'defrag' ? '-Defrag' : '-ReTrim';
-  log.info(`Otimizando volume ${l}: (${mode})`);
-  await ps.run(`Optimize-Volume -DriveLetter ${l} ${flag}`, { timeout: 3 * 60 * 60 * 1000 });
-  return true;
-}
-
-// ---------------- periféricos ----------------
-async function peripherals() {
-  return ps.json(`$m = @(Get-CimInstance Win32_PointingDevice | ForEach-Object { @{ name = $_.Name; maker = $_.Manufacturer } })
-$k = @(Get-CimInstance Win32_Keyboard | ForEach-Object { @{ name = $_.Name; desc = $_.Description } })
-$ms = Get-ItemProperty 'HKCU:\\Control Panel\\Mouse'
-Out-Json @{ mice = $m; keyboards = $k; mouseSpeed = $ms.MouseSensitivity; accel = ($ms.MouseSpeed -ne '0') }`);
-}
-
-module.exports = { staticInfo, startMonitor, stopMonitor, disks, timerInfo, timerStart, timerStop, msiList, msiSet, volumes, optimizeVolume, peripherals };
+module.exports = { staticInfo, startMonitor, stopMonitor, disks };
