@@ -812,6 +812,7 @@ foreach ($f in $files) {
   {
     id: 'hw_storage', cat: 'hardware', name: 'Otimização de armazenamento', risk: 'safe', reboot: true, hw: ['storage'],
     desc: 'Desliga "último acesso" e nomes 8.3 do NTFS, DontVerifyRandomDrivers = 1 e desativa a desfragmentação agendada (o TRIM manual continua disponível abaixo).',
+    warn: 'A tarefa agendada de otimização também faz o TRIM automático dos SSDs. Se aplicar, rode o TRIM manualmente de vez em quando (abaixo).',
     reg: [
       R(FS, 'NtfsDisableLastAccessUpdate', 2147483649, { def: 2147483650 }),
       R(FS, 'NtfsDisable8dot3NameCreation', 1, { def: 2 }),

@@ -7,7 +7,6 @@ const PER_GAME = [
   { key: 'fso', label: 'Sem otimizações de tela cheia' },
   { key: 'dpi', label: 'Forçar "High DPI aware"' },
   { key: 'gpu', label: 'GPU dedicada (alto desempenho)' },
-  { key: 'segheap', label: 'Segment Heap' },
 ];
 
 export default function GameMode({ gm }) {
@@ -112,7 +111,28 @@ export default function GameMode({ gm }) {
           </div>
         ))}
       </Card>
-      <Callout tone="info">O Segment Heap e os demais ajustes por jogo precisam existir antes de o jogo abrir — por isso são gravados por executável, e não durante a sessão.</Callout>
+      <Card title="Seguro para jogos com anti-cheat (VAC, FACEIT, Vanguard, EAC, BattlEye)" icon="shield">
+        <div className="grid g2">
+          <div>
+            <strong className="ok-t">O Modo Jogo NUNCA:</strong>
+            <ul className="small" style={{ margin: '6px 0 0', paddingLeft: 18, color: 'var(--text2)' }}>
+              <li>abre o processo do jogo (nem para ler, escrever, mudar prioridade ou afinidade)</li>
+              <li>injeta código, cria overlay ou lê a memória de qualquer jogo</li>
+              <li>altera arquivos do jogo</li>
+              <li>toca em processos ou serviços de anti-cheat e launchers (Steam, Riot, FACEIT, EAC, BattlEye...)</li>
+            </ul>
+          </div>
+          <div>
+            <strong>O que ele faz (tudo no nível do Windows):</strong>
+            <ul className="small" style={{ margin: '6px 0 0', paddingLeft: 18, color: 'var(--text2)' }}>
+              <li>baixa a prioridade/congela outros apps (navegador, IDE...) com o acesso mínimo</li>
+              <li>para serviços do Windows e muda chaves do agendador e do plano de energia</li>
+              <li>os ajustes por jogo são os mesmos que o próprio Windows grava em Propriedades → Compatibilidade e Configurações → Gráficos</li>
+            </ul>
+          </div>
+        </div>
+        <div className="muted small" style={{ marginTop: 10 }}>Anti-cheats banem por modificar o jogo ou rodar cheats conhecidos — configurações do sistema não se enquadram nisso. Por segurança, foram removidos desta versão: afinidade aos P-cores e prioridade alta (abriam o processo do jogo) e Segment Heap (opção de depuração no executável). O limpador de RAM também pula jogos e anti-cheats.</div>
+      </Card>
     </>
   );
 }

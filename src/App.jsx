@@ -4,6 +4,7 @@ import { ConfirmHost, ToastHost } from './ui';
 import { callQuiet, on } from './lib';
 import Dashboard from './pages/Dashboard';
 import Tweaks from './pages/Tweaks';
+import AutoOptimize from './pages/AutoOptimize';
 import GameMode from './pages/GameMode';
 import Hardware from './pages/Hardware';
 import Bios from './pages/Bios';
@@ -20,6 +21,7 @@ import Settings from './pages/Settings';
 const NAV = [
   { sec: 'Geral' },
   { id: 'home', label: 'Início', icon: 'home', C: Dashboard },
+  { id: 'auto', label: 'Otimização automática', icon: 'bolt', C: AutoOptimize },
   { id: 'tweaks', label: 'Ajustes', icon: 'sliders', C: Tweaks },
   { id: 'game', label: 'Modo Jogo', icon: 'game', C: GameMode },
   { sec: 'Sistema' },

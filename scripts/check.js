@@ -70,6 +70,7 @@ function check(src, label) {
     captured.push(tw.unapplyBlock(t, null));
   }
   await tw.status();
+  await require('../electron/modules/advisor').analyze().catch((e) => console.log('advisor:', e.message));
   const gm = require('../electron/modules/gamemode');
   store.update((d) => { d.gameMode.games = [{ id: 'x', name: 'Jogo', exePath: 'C:\\a b\\jogo.exe', extraExes: [], enabled: true }]; });
   await gm.start('x').catch(() => {});

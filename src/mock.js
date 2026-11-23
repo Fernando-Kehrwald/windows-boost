@@ -25,6 +25,7 @@ const H = {
     os: { distro: 'Microsoft Windows 11 Pro', build: '26100', arch: 'x64' }, system: { maker: 'ASUS', model: 'System Product Name' }, board: { maker: 'ASUSTeK COMPUTER INC.', model: 'TUF GAMING B650-PLUS WIFI' }, bios: { version: '3072', date: '2025-02-10' } },
   'sys.disks': [{ mount: 'C:', size: 1000 * GB, used: 412 * GB, use: 41.2, fs: 'NTFS' }, { mount: 'D:', size: 2000 * GB, used: 1530 * GB, use: 76.5, fs: 'NTFS' }],
   'tweaks.list': D.tweaks,
+  'advisor.analyze': D.advisor,
   'tweaks.status': () => Object.fromEntries(D.tweaks.map((t) => [t.id, applied.has(t.id)])),
   'tweaks.applied': () => [...applied].map((id) => ({ id, name: (D.tweaks.find((t) => t.id === id) || {}).name, at: Date.now() - 86400000 })),
   'tweaks.apply': (ids) => { ids.forEach((i) => applied.add(i)); return Object.fromEntries(ids.map((i) => [i, { ok: true }])); },

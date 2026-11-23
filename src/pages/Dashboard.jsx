@@ -65,7 +65,7 @@ export default function Dashboard({ go, info, gm }) {
         </Card>
         <Card title="Ações rápidas" icon="bolt">
           <div className="quick">
-            <button onClick={() => quick('rec')} disabled={!!busy}><span className="qi">{busy === 'rec' ? <Spinner size={16} /> : <Icon name="star" />}</span><span><strong>Aplicar recomendados</strong><small>Pacote seguro de ajustes</small></span></button>
+            <button onClick={() => go('auto')} disabled={!!busy}><span className="qi"><Icon name="bolt" /></span><span><strong>Otimização automática</strong><small>Plano feito para o seu hardware</small></span></button>
             <button onClick={() => quick('clean')} disabled={!!busy}><span className="qi">{busy === 'clean' ? <Spinner size={16} /> : <Icon name="broom" />}</span><span><strong>Limpeza rápida</strong><small>Temporários e caches</small></span></button>
             <button onClick={() => quick('ram')} disabled={!!busy}><span className="qi">{busy === 'ram' ? <Spinner size={16} /> : <Icon name="memory" />}</span><span><strong>Limpar RAM</strong><small>Standby e working sets</small></span></button>
             <button onClick={() => quick('game')} disabled={!!busy || (gm && gm.busy)}><span className="qi">{busy === 'game' ? <Spinner size={16} /> : <Icon name="game" />}</span><span><strong>{gm && gm.active ? 'Desligar Modo Jogo' : 'Ligar Modo Jogo'}</strong><small>{gm && gm.active ? `Ativo: ${gm.game}` : 'Desfaz tudo ao desligar'}</small></span></button>

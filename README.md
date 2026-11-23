@@ -64,6 +64,7 @@ Verificação estática dos ~255 scripts PowerShell gerados: `npm run check`.
 
 | Aba | O que faz |
 |---|---|
+| **Otimização automática** | Lê o hardware e o sistema (desktop/notebook, CPU — incluindo X3D e híbridas —, GPU, RAM, SSD/HD, versão do Windows, anti-cheats instalados, uso de virtualização) e monta um plano: **recomendados** (marcados), **opcionais** (com contrapartida, desmarcados) e **não recomendados para o seu PC**, sempre com o motivo. Nada muda até você confirmar. |
 | **Início** | CPU, GPU, RAM, sistema, discos e uso em tempo real (CPU, RAM, GPU, VRAM e temperatura em NVIDIA); ações rápidas. |
 | **Ajustes** | 81 ajustes (desempenho, jogos, rede, privacidade, aparência, geral), cada um com nível de risco, aplicar/desfazer e verificação do estado real no sistema. |
 | **Modo Jogo** | Detecta jogos (Steam, Epic, GOG, Ubisoft, EA, Battle.net, Riot, Rockstar, Xbox) e aplica otimizações só enquanto o jogo está aberto, desfazendo ao fechar. Manual ou automático. Recupera sozinho se o PC desligar no meio. |
@@ -78,6 +79,28 @@ Verificação estática dos ~255 scripts PowerShell gerados: `npm run check`.
 | **Utilitários** | Limpeza de Disco, Sensor de Armazenamento, msinfo32, inicialização, reiniciar driver gráfico/Explorer/Pesquisa/áudio, flushdns/release/renew, corrigir Bluetooth, SFC, DISM, CHKDSK, redefinir pilha de rede, pausar/retomar Windows Update, plano de energia. |
 | **Restaurar** | Criar, restaurar e apagar pontos de restauração (inclusive todos de uma vez), backups do Registro feitos pelo app e lista dos ajustes aplicados (desfazer/reaplicar). |
 | **Configurações** | Ponto de restauração automático, bandeja, iniciar com o Windows (tarefa agendada elevada), iniciar minimizado, caminhos das ferramentas opcionais, logs. |
+
+## Modo Jogo e anti-cheat (VAC, FACEIT, Vanguard, EAC, BattlEye)
+
+Anti-cheats banem por modificar o jogo (arquivos ou memória) ou rodar cheats conhecidos. O Windows Boost foi feito para
+nunca chegar perto disso:
+
+- **Nunca abre o processo do jogo** — nem para ler, escrever, mudar prioridade ou afinidade.
+- Não injeta código, não cria overlay e não lê memória de nenhum processo.
+- Não altera arquivos do jogo.
+- Nunca toca em processos/serviços de anti-cheat e launchers (Steam, Riot, FACEIT, EAC, BattlEye, ESEA, EA AC…) nem em **nenhum** jogo da sua lista — eles são excluídos de "aliviar segundo plano" e do limpador de RAM.
+- Outros apps são suspensos/rebaixados abrindo o processo só com o direito mínimo (`PROCESS_SUSPEND_RESUME`); o limpador de RAM usa só `PROCESS_SET_QUOTA` e, com um jogo aberto, não mexe em working sets.
+- Os ajustes por jogo são exatamente os que o Windows grava em *Propriedades → Compatibilidade* e *Configurações → Gráficos*.
+
+Por isso, a partir da 1.0.1 foram **removidos**: afinidade aos P-cores e prioridade alta durante o jogo (abriam o processo do jogo)
+e Segment Heap por jogo (opção de depuração no executável — a entrada antiga é apagada automaticamente).
+
+## Novidades da 1.0.1
+
+- Corrigido: **"Otimizar efeitos visuais" falhava** com "O tipo de objeto de valor não correspondeu ao RegistryValueKind" (o PowerShell desmontava o `byte[]` ao retornar da função; valores binários e de múltiplas strings agora são gravados corretamente).
+- Nova aba **Otimização automática**.
+- Modo Jogo e limpador de RAM endurecidos para jogos com anti-cheat (veja acima).
+- Aviso no ajuste "Otimização de armazenamento": a tarefa agendada que ele desativa também faz o TRIM dos SSDs.
 
 ## Como o desfazer funciona
 

@@ -36,6 +36,7 @@ const dns = require('./modules/dns');
 const bios = require('./modules/bios');
 const drivers = require('./modules/drivers');
 const utilities = require('./modules/utilities');
+const advisor = require('./modules/advisor');
 
 let win = null;
 let tray = null;
@@ -44,6 +45,7 @@ let quitting = false;
 function send(name, payload) { if (win && !win.isDestroyed()) win.webContents.send('event', name, payload); }
 log.onLog((e) => send('log', e));
 gamemode.onStatus((s) => { send('gamemode', s); updateTrayMenu(); });
+ram.setProtection(() => ({ names: gamemode.protectedNames(), gaming: gamemode.isSessionActive() }));
 
 const ICON = path.join(__dirname, 'assets', 'icon.png');
 
@@ -140,6 +142,7 @@ const H = {
   'sys.monitorStart': () => system.startMonitor((d) => send('monitor', d)),
   'sys.monitorStop': () => system.stopMonitor(),
 
+  'advisor.analyze': () => advisor.analyze(),
   'tweaks.list': () => tweaks.list(),
   'tweaks.status': () => tweaks.status(),
   'tweaks.apply': (ids) => tweaks.applyMany(ids),

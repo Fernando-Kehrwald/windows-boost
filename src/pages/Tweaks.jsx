@@ -38,7 +38,7 @@ export function useTweaks() {
       const r = await call(on ? 'tweaks.apply' : 'tweaks.unapply', ts.map((t) => t.id));
       const fails = Object.entries(r).filter(([, v]) => !v.ok);
       const okN = Object.keys(r).length - fails.length;
-      if (fails.length) toast(`${fails.length} falharam: ${fails.map(([id, v]) => `${(ts.find((t) => t.id === id) || {}).name}: ${v.error}`).join(' | ')}`, 'error');
+      if (fails.length) toast(`${fails.length} ${fails.length === 1 ? 'falhou' : 'falharam'}: ${fails.map(([id, v]) => `${(ts.find((t) => t.id === id) || {}).name}: ${v.error}`).join(' | ')}`, 'error');
       if (okN) toast(`${okN} ajuste(s) ${on ? 'aplicado(s)' : 'desfeito(s)'}.`);
       if (Object.values(r).some((v) => v.ok && v.reboot)) setNeedReboot(true);
       status.setData((s) => ({ ...(s || statusData || {}), ...Object.fromEntries(Object.entries(r).filter(([, v]) => v.ok).map(([id]) => [id, on])) }));
@@ -72,9 +72,11 @@ export default function Tweaks({ go }) {
       <PageHeader title="Ajustes" desc={`${all.length} ajustes do Windows. Cada um guarda o valor anterior e pode ser desfeito (exceto os marcados "Sem desfazer").`}
         actions={<>
           <Button icon="refresh" onClick={status.reload} loading={status.loading}>Verificar estado</Button>
-          <Button variant="primary" icon="star" onClick={() => run(all.filter((t) => t.rec && !st[t.id]), true)}>Aplicar recomendados</Button>
+          <Button icon="star" onClick={() => run(all.filter((t) => t.rec && !st[t.id]), true)}>Aplicar recomendados</Button>
+          <Button variant="primary" icon="bolt" onClick={() => go('auto')}>Otimização automática</Button>
         </>} />
       {needReboot && <RebootBanner />}
+      <Callout tone="info" icon="bolt" title="Não sabe quais aplicar?" actions={<Button small variant="primary" onClick={() => go('auto')}>Analisar meu PC</Button>}>A Otimização automática lê o seu hardware e monta um plano com o motivo de cada ajuste.</Callout>
       <div className="row between">
         <Tabs value={cat} onChange={setCat} tabs={CATS.map((c) => ({ ...c, count: c.id === 'all' ? all.length : all.filter((t) => t.cat === c.id).length }))} />
       </div>

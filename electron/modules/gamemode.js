@@ -19,34 +19,21 @@ const PROTECTED = ['steam', 'steamwebhelper', 'EpicGamesLauncher', 'EpicWebHelpe
   'EasyAntiCheat_EOS', 'BEService', 'FACEIT', 'faceitclient', 'Discord', 'TeamSpeak', 'ts3client_win64', 'Spotify', 'AnyDesk',
   'TeamViewer', 'Parsec', 'obs64', 'NVIDIA Share', 'RadeonSoftware', 'openvpn', 'wireguard', 'ProtonVPN', 'NordVPN', 'mullvad-daemon',
   'explorer', 'dwm', 'csrss', 'audiodg'];
+// Processos de anti-cheat e da plataforma: o Modo Jogo nunca abre, suspende ou altera nenhum deles.
+const ANTICHEAT = ['steamservice', 'steam*', 'cs2', 'csgo', 'vgc', 'vgtray', 'vgk', 'EasyAntiCheat*', 'EACLauncher', 'BEService*', 'BEDaisy',
+  'FACEIT*', 'faceit*', 'ESEA*', 'GameMon*', 'GameGuard*', 'xigncode*', 'xcoronahost', 'PnkBstr*', 'mhyprot*', 'nProtect*', 'EAAntiCheat*',
+  'RiotClient*', 'Valorant*', 'atvi-*', 'ricochet*', 'javelin*', 'TslGame*', 'zakynthos*', 'GameInput*'];
 const SERVICES = ['SysMain', 'WSearch', 'DiagTrack', 'dmwappushservice', 'DoSvc', 'MapsBroker', 'RetailDemo', 'TrkWks', 'WerSvc',
   'PcaSvc', 'Fax', 'TabletInputService', 'WbioSrvc', 'WMPNetworkSvc', 'XblAuthManager', 'XblGameSave', 'XboxNetApiSvc'];
 
-const PROC_TYPE = `Add-Type -Namespace WB -Name Proc -MemberDefinition '[DllImport("ntdll.dll")] public static extern int NtSuspendProcess(IntPtr h); [DllImport("ntdll.dll")] public static extern int NtResumeProcess(IntPtr h);' -ErrorAction SilentlyContinue`;
-const CPUSET_TYPE = `Add-Type -ErrorAction SilentlyContinue -TypeDefinition @'
-using System; using System.Runtime.InteropServices; using System.Collections.Generic;
-public static class WBCpuSets {
-  [DllImport("kernel32.dll", SetLastError=true)] static extern bool GetSystemCpuSetInformation(IntPtr info, uint len, out uint ret, IntPtr proc, uint flags);
-  public static long PCoreMask() {
-    uint len; GetSystemCpuSetInformation(IntPtr.Zero, 0, out len, IntPtr.Zero, 0);
-    if (len == 0) return 0;
-    IntPtr buf = Marshal.AllocHGlobal((int)len);
-    try {
-      if (!GetSystemCpuSetInformation(buf, len, out len, IntPtr.Zero, 0)) return 0;
-      int off = 0; byte maxClass = 0; var l = new List<int[]>();
-      while (off < len) {
-        int size = Marshal.ReadInt32(buf, off); if (size <= 0) break;
-        int grp = Marshal.ReadInt16(buf, off + 12); byte lp = Marshal.ReadByte(buf, off + 14); byte eff = Marshal.ReadByte(buf, off + 18);
-        if (grp == 0) { l.Add(new int[] { lp, eff }); if (eff > maxClass) maxClass = eff; }
-        off += size;
-      }
-      if (maxClass == 0) return 0;
-      long mask = 0; foreach (var e in l) if (e[1] == maxClass && e[0] < 63) mask |= (1L << e[0]);
-      return mask;
-    } finally { Marshal.FreeHGlobal(buf); }
-  }
-}
-'@`;
+// Abre o processo só com PROCESS_SUSPEND_RESUME (0x0800) — nunca com acesso total.
+const PROC_TYPE = `Add-Type -Namespace WB -Name Proc -MemberDefinition '
+[DllImport("ntdll.dll")] public static extern int NtSuspendProcess(IntPtr h);
+[DllImport("ntdll.dll")] public static extern int NtResumeProcess(IntPtr h);
+[DllImport("kernel32.dll")] public static extern IntPtr OpenProcess(uint access, bool inherit, int pid);
+[DllImport("kernel32.dll")] public static extern bool CloseHandle(IntPtr h);
+public static bool Suspend(int pid, bool resume) { IntPtr h = OpenProcess(0x0800, false, pid); if (h == IntPtr.Zero) return false; try { return (resume ? NtResumeProcess(h) : NtSuspendProcess(h)) == 0; } finally { CloseHandle(h); } }' -ErrorAction SilentlyContinue
+function Test-Protected([string]$n) { foreach ($pat in @($P.protect) + @($P.games)) { if ($pat -and $n -like $pat) { return $true } }; return $false }`;
 
 const powerPart = (setting, sub, value) => ({
   apply: `$state = Get-PowerIndex $PWR.${sub} $PWR.${setting}\nSet-PowerIndex $PWR.${sub} $PWR.${setting} ${value} ${value}`,
@@ -61,12 +48,12 @@ const PARTS = {
 $list = @()
 foreach ($p in Get-Process) {
   $n = $p.ProcessName
-  if ($P.protect -contains $n -or $P.games -contains $n) { continue }
+  if (Test-Protected $n) { continue }
   $heavy = $false; foreach ($pat in $P.heavy) { if ($n -like $pat) { $heavy = $true; break } }
   if (-not $heavy) { continue }
   try {
     $e = @{ id = $p.Id; name = $n; prio = [string]$p.PriorityClass; suspended = $false }
-    if ($P.suspend) { [void][WB.Proc]::NtSuspendProcess($p.Handle); $e.suspended = $true } else { $p.PriorityClass = 'Idle' }
+    if ($P.suspend) { $e.suspended = [WB.Proc]::Suspend($p.Id, $false) } else { $p.PriorityClass = 'Idle' }
     $list += $e
   } catch {}
 }
@@ -74,7 +61,7 @@ $state = @{ procs = $list }`,
     unapply: `${PROC_TYPE}
 foreach ($e in @($state.procs)) { if ($null -eq $e) { continue }
   try { $p = Get-Process -Id $e.id -ErrorAction Stop; if ($p.ProcessName -ne $e.name) { continue }
-    if ($e.suspended) { [void][WB.Proc]::NtResumeProcess($p.Handle) } elseif ($e.prio) { $p.PriorityClass = $e.prio } } catch {} }`,
+    if ($e.suspended) { [void][WB.Proc]::Suspend($e.id, $true) } elseif ($e.prio) { $p.PriorityClass = $e.prio } } catch {} }`,
   },
   services: {
     name: 'Parar serviços não essenciais',
@@ -112,21 +99,9 @@ Run netsh int tcp set supplemental template=Internet congestionprovider=$cp | Ou
     ...powerPart('IDLEDISABLE', 'SUB_PROCESSOR', 1),
   },
   aspm: { name: 'ASPM do PCIe', desc: 'Desliga a economia de energia dos links PCIe (GPU, SSD, rede).', ...powerPart('ASPM', 'SUB_PCIE', 0) },
-  pcores: {
-    name: 'Afinidade aos P-cores',
-    desc: 'Em CPUs híbridas (Intel 12ª geração+), prende o jogo aos núcleos de performance.',
-    apply: `${CPUSET_TYPE}
-$mask = [WBCpuSets]::PCoreMask()
-if ($mask -gt 0) { foreach ($n in $P.games) { Get-Process -Name $n -ErrorAction SilentlyContinue | ForEach-Object { try { $_.ProcessorAffinity = [IntPtr]$mask } catch {} } } }`,
-  },
-  highprio: {
-    name: 'Prioridade alta para o jogo',
-    desc: 'Define a prioridade do processo do jogo como Alta.',
-    apply: `foreach ($n in $P.games) { Get-Process -Name $n -ErrorAction SilentlyContinue | ForEach-Object { try { $_.PriorityClass = 'High' } catch {} } }`,
-  },
 };
 
-const DEFAULT_OPTIONS = { background: true, suspend: false, services: true, network: true, bbr2: false, gpu: true, io: true, cpuidle: false, aspm: true, pcores: true, highprio: false };
+const DEFAULT_OPTIONS = { background: true, suspend: false, services: true, network: true, bbr2: false, gpu: true, io: true, cpuidle: false, aspm: true };
 
 function options() { return { ...DEFAULT_OPTIONS, ...(store.get().gameMode.options || {}) }; }
 function parts() { return Object.entries(PARTS).map(([id, p]) => ({ id, name: p.name, desc: p.desc })); }
@@ -236,6 +211,8 @@ if (${enabled ? '$true' : '$false'}) { $tok += '${flag}' }
 if ($tok.Count) { Set-RegValue '${LAYERS}' ${exe} ('~ ' + ($tok -join ' ')) 'String' } else { Remove-RegValue '${LAYERS}' ${exe} }`;
   } else if (key === 'gpu') {
     script = enabled ? `Set-RegValue '${GPUPREF}' ${exe} 'GpuPreference=2;' 'String'` : `Remove-RegValue '${GPUPREF}' ${exe}`;
+  } else if (key === 'segheap' && enabled) {
+    throw new Error('Removido por segurança: o Segment Heap muda como a memória do jogo é alocada (opção de depuração do Windows), o que anti-cheats podem interpretar como adulteração.');
   } else if (key === 'segheap') {
     const name = ps.q(g.exePath.split(/[\\/]/).pop());
     script = enabled ? `Set-RegValue ('${IFEO}\\' + ${name}) 'FrontEndHeapDebugOptions' 8` : `Remove-RegValue ('${IFEO}\\' + ${name}) 'FrontEndHeapDebugOptions'`;
@@ -264,7 +241,8 @@ async function start(gameId, reason) {
     const game = gameId ? store.get().gameMode.games.find((g) => g.id === gameId) : null;
     const games = game ? processNames(game) : [];
     const services = SERVICES.filter((s) => !(game && game.source === 'Xbox' && /^Xbl|^Xbox/.test(s)));
-    const params = { heavy: HEAVY, protect: PROTECTED, suspend: !!opts.suspend, services, games };
+    // Protege TODOS os jogos da lista (não só o atual), a plataforma e os anti-cheats.
+    const params = { heavy: HEAVY, protect: protectedNames(), suspend: !!opts.suspend, services, games };
     const chosen = Object.keys(PARTS).filter((k) => opts[k]);
     const defs = chosen.map((k) => ({ id: `gm_${k}`, ...PARTS[k] }));
     // Marca a sessão ANTES de mexer em algo, para conseguir desfazer se o PC desligar no meio.
@@ -336,7 +314,17 @@ function setAuto(on) {
 function setOptions(o) { store.update((d) => { d.gameMode.options = { ...options(), ...o }; }); return options(); }
 
 /** Chamado na abertura do app: se o PC desligou com o Modo Jogo ativo, desfaz agora. */
+/** Nomes que nunca podem ser tocados: launchers, anti-cheats e todos os jogos da lista. */
+function protectedNames() {
+  const games = store.get().gameMode.games.flatMap(processNames);
+  return [...new Set([...PROTECTED, ...ANTICHEAT, ...games])];
+}
+function isSessionActive() { return !!store.get().gameSession; }
+
 async function recover() {
+  // Versões anteriores permitiam Segment Heap por jogo (IFEO). Remove para não deixar nada no executável do jogo.
+  const seg = store.get().gameMode.games.filter((g) => (store.get().gameMode.perGame[g.id] || {}).segheap);
+  for (const g of seg) await setPerGame(g.id, 'segheap', false).catch(() => {});
   if (store.get().gameSession) {
     log.warn('Sessão do Modo Jogo pendente encontrada (o app ou o PC fechou no meio). Desfazendo...');
     await stop('recuperação').catch((e) => log.error(e.message));
@@ -344,4 +332,4 @@ async function recover() {
   if (store.get().gameMode.auto) setAuto(true);
 }
 
-module.exports = { detect, list, addManual, updateGame, removeGame, setPerGame, start, stop, setAuto, setOptions, options, parts, statusInfo, onStatus, recover, HEAVY, PROTECTED };
+module.exports = { protectedNames, isSessionActive, ANTICHEAT, detect, list, addManual, updateGame, removeGame, setPerGame, start, stop, setAuto, setOptions, options, parts, statusInfo, onStatus, recover, HEAVY, PROTECTED };

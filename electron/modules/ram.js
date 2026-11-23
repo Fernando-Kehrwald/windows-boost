@@ -13,6 +13,8 @@ public static class WBMem {
   [DllImport("advapi32.dll", SetLastError=true, CharSet=CharSet.Unicode)] static extern bool LookupPrivilegeValue(string sys, string name, out long luid);
   [DllImport("advapi32.dll", SetLastError=true)] static extern bool AdjustTokenPrivileges(IntPtr tok, bool disableAll, ref TP ns, int len, IntPtr prev, IntPtr retLen);
   [DllImport("kernel32.dll")] static extern IntPtr GetCurrentProcess();
+  [DllImport("kernel32.dll")] static extern IntPtr OpenProcess(uint access, bool inherit, int pid);
+  [DllImport("kernel32.dll")] static extern bool CloseHandle(IntPtr h);
   [StructLayout(LayoutKind.Sequential, Pack=4)] struct TP { public int Count; public long Luid; public int Attr; }
   public static bool Enable(string priv) {
     IntPtr tok; if (!OpenProcessToken(GetCurrentProcess(), 0x28, out tok)) return false;
@@ -20,7 +22,22 @@ public static class WBMem {
     if (!LookupPrivilegeValue(null, priv, out tp.Luid)) return false;
     return AdjustTokenPrivileges(tok, false, ref tp, Marshal.SizeOf(tp), IntPtr.Zero, IntPtr.Zero);
   }
-  public static int WorkingSets() { int n = 0; foreach (var p in Process.GetProcesses()) { try { if (EmptyWorkingSet(p.Handle)) n++; } catch {} } return n; }
+  // Abre cada processo só com PROCESS_SET_QUOTA | PROCESS_QUERY_LIMITED_INFORMATION (nada de ler/escrever memória)
+  // e pula jogos, anti-cheats e launchers (lista "skip", aceita curinga no fim: "steam*").
+  public static int WorkingSets(string[] skip) {
+    int n = 0;
+    foreach (var p in Process.GetProcesses()) {
+      try {
+        string name = p.ProcessName.ToLowerInvariant(); bool protect = false;
+        foreach (var s in skip) { var x = s.ToLowerInvariant(); if (x.EndsWith("*") ? name.StartsWith(x.TrimEnd('*')) : name == x) { protect = true; break; } }
+        if (protect || p.Id <= 4) continue;
+        IntPtr h = OpenProcess(0x1100, false, p.Id);
+        if (h == IntPtr.Zero) continue;
+        try { if (EmptyWorkingSet(h)) n++; } finally { CloseHandle(h); }
+      } catch {}
+    }
+    return n;
+  }
   public static uint Command(int cmd) { IntPtr p = Marshal.AllocHGlobal(4); try { Marshal.WriteInt32(p, cmd); return NtSetSystemInformation(80, p, 4); } finally { Marshal.FreeHGlobal(p); } }
   public static bool FlushFileCache() { return SetSystemFileCacheSize(new IntPtr(-1), new IntPtr(-1), 0); }
 }
@@ -36,14 +53,22 @@ const INFO = `function Get-MemInfo {
 
 async function info() { return ps.json(`${INFO}\nOut-Json (Get-MemInfo)`); }
 
+let getProtection = () => ({ names: [], gaming: false });
+/** Fornecido pelo main: nomes protegidos (jogos/anti-cheats) e se há sessão de jogo ativa. */
+function setProtection(fn) { getProtection = fn; }
+
 /** areas: { workingSets, modified, standby, lowStandby, systemCache } */
 async function clean(areas = { workingSets: true, modified: true, standby: true, lowStandby: true, systemCache: true }) {
-  const r = await ps.json(`${MEM_TYPE}
+  const prot = getProtection();
+  // Com jogo aberto, não mexe em working sets (nem individualmente nem no comando global) — evita travadas.
+  if (prot.gaming) areas = { ...areas, workingSets: false };
+  const r = await ps.json(`$skip = [string[]]@(${ps.data({ n: prot.names })}.n)
+${MEM_TYPE}
 ${INFO}
 $before = Get-MemInfo
-[void][WBMem]::Enable('SeProfileSingleProcessPrivilege'); [void][WBMem]::Enable('SeIncreaseQuotaPrivilege'); [void][WBMem]::Enable('SeDebugPrivilege')
+[void][WBMem]::Enable('SeProfileSingleProcessPrivilege'); [void][WBMem]::Enable('SeIncreaseQuotaPrivilege')
 $done = @()
-if (${areas.workingSets ? '$true' : '$false'}) { [void][WBMem]::WorkingSets(); [void][WBMem]::Command(2); $done += 'workingSets' }
+if (${areas.workingSets ? '$true' : '$false'}) { [void][WBMem]::WorkingSets($skip); $done += 'workingSets' }
 if (${areas.systemCache ? '$true' : '$false'}) { if ([WBMem]::FlushFileCache()) { $done += 'systemCache' } }
 if (${areas.modified ? '$true' : '$false'}) { if ([WBMem]::Command(3) -eq 0) { $done += 'modified' } }
 if (${areas.standby ? '$true' : '$false'}) { if ([WBMem]::Command(4) -eq 0) { $done += 'standby' } }
@@ -77,4 +102,4 @@ function setAuto(cfg) {
   return schedule();
 }
 
-module.exports = { info, clean, schedule, setAuto };
+module.exports = { info, clean, schedule, setAuto, setProtection };

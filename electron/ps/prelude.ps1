@@ -25,14 +25,18 @@ function ConvertTo-RegData($Value, [string]$Kind) {
   switch ($Kind) {
     'DWord' { $v = [int64]$Value; if ($v -gt [int32]::MaxValue) { $v = $v - 4294967296 }; return [int32]$v }
     'QWord' { return [int64]$Value }
-    'Binary' { return [byte[]]@($Value | ForEach-Object { [byte]$_ }) }
-    'MultiString' { return [string[]]@($Value) }
+    # A vírgula impede o PowerShell de "desmontar" o array ao retornar (senão chega object[] ao SetValue).
+    'Binary' { return ,([byte[]]@($Value | ForEach-Object { [byte]$_ })) }
+    'MultiString' { return ,([string[]]@($Value)) }
     default { if ($null -eq $Value) { return '' }; return [string]$Value }
   }
 }
 function Set-RegValue([string]$Path, [string]$Name, $Value, [string]$Kind = 'DWord') {
   $k = Open-RegKey $Path $true
-  try { $k.SetValue($Name, (ConvertTo-RegData $Value $Kind), [Microsoft.Win32.RegistryValueKind]$Kind) } finally { $k.Close() }
+  $data = ConvertTo-RegData $Value $Kind
+  if ($Kind -eq 'Binary' -and $data -isnot [byte[]]) { $data = [byte[]]@($data) }
+  if ($Kind -eq 'MultiString' -and $data -isnot [string[]]) { $data = [string[]]@($data) }
+  try { $k.SetValue($Name, $data, [Microsoft.Win32.RegistryValueKind]$Kind) } finally { $k.Close() }
 }
 function Remove-RegValue([string]$Path, [string]$Name) {
   $k = Open-RegKey $Path $false
