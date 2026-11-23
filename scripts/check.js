@@ -70,6 +70,11 @@ function check(src, label) {
     captured.push(tw.unapplyBlock(t, null));
   }
   await tw.status();
+  const th = require('../electron/modules/thermal');
+  await th.probe().catch(() => {});
+  const o = { laptop: true, max: { ac: 100, dc: 100 }, epp: { ac: 33, dc: 50 }, boost: { ac: 2, dc: 1 }, cool: { ac: 0, dc: 0 } };
+  for (const n of [-1, 0, 1, 2, 3]) captured.push(th.levelScript(n, o));
+  captured.push(th.restoreScript(o));
   await require('../electron/modules/advisor').analyze().catch((e) => console.log('advisor:', e.message));
   const gm = require('../electron/modules/gamemode');
   store.update((d) => { d.gameMode.games = [{ id: 'x', name: 'Jogo', exePath: 'C:\\a b\\jogo.exe', extraExes: [], enabled: true }]; });

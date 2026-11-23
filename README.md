@@ -66,7 +66,7 @@ Verificação estática dos ~255 scripts PowerShell gerados: `npm run check`.
 |---|---|
 | **Otimização automática** | Lê o hardware e o sistema (desktop/notebook, CPU — incluindo X3D e híbridas —, GPU, RAM, SSD/HD, versão do Windows, anti-cheats instalados, uso de virtualização) e monta um plano: **recomendados** (marcados), **opcionais** (com contrapartida, desmarcados) e **não recomendados para o seu PC**, sempre com o motivo. Nada muda até você confirmar. |
 | **Início** | CPU, GPU, RAM, sistema, discos e uso em tempo real (CPU, RAM, GPU, VRAM e temperatura em NVIDIA); ações rápidas. |
-| **Ajustes** | 81 ajustes (desempenho, jogos, rede, privacidade, aparência, geral), cada um com nível de risco, aplicar/desfazer e verificação do estado real no sistema. |
+| **Ajustes** | 83 ajustes (desempenho, jogos, rede, privacidade, aparência, geral), cada um com nível de risco, aplicar/desfazer e verificação do estado real no sistema. |
 | **Modo Jogo** | Detecta jogos (Steam, Epic, GOG, Ubisoft, EA, Battle.net, Riot, Rockstar, Xbox) e aplica otimizações só enquanto o jogo está aberto, desfazendo ao fechar. Manual ou automático. Recupera sozinho se o PC desligar no meio. |
 | **Hardware** | Abas GPU, CPU, RAM, Mouse e Teclado, Armazenamento, Timer e Modo MSI, com os ajustes de cada peça, resolução do timer, TRIM/desfragmentação e MSI por dispositivo (com backup). |
 | **BIOS** | Lê placa/BIOS/soquete/ACPI, guia de 38 ajustes com o caminho no menu de cada fabricante (ASUS, MSI, Gigabyte, ASRock), gravação direta na NVRAM via SCEWIN (placas AMI) com backup, conferência e restauração, ajustes de boot via `bcdedit` (com backup do BCD) e reinício direto na UEFI. |
@@ -94,6 +94,34 @@ nunca chegar perto disso:
 
 Por isso, a partir da 1.0.1 foram **removidos**: afinidade aos P-cores e prioridade alta durante o jogo (abriam o processo do jogo)
 e Segment Heap por jogo (opção de depuração no executável — a entrada antiga é apagada automaticamente).
+
+## Guardião térmico (Modo Jogo) — feito para notebooks
+
+Caso típico: notebook gamer (ex.: Acer Nitro V5) jogando CS2 — depois de algumas partidas o FPS cai de 120 para 90, 60, 30
+por **thermal throttling**. No plano "Desempenho máximo" ele superaquece; no "Equilibrado" a CPU vira gargalo. A solução
+manual que funciona é ficar no meio-termo: **estado máximo do processador em 99%**, que na maioria das CPUs desliga o turbo —
+o processador esquenta muito menos e perde pouco desempenho.
+
+O Guardião faz isso sozinho enquanto o jogo está aberto:
+
+- A cada 2 s lê sensores do Windows (desempenho e limite da CPU, freio térmico ACPI, temperatura, bateria, memória) e da GPU
+  (uso, temperatura, clock e motivo de redução de clock nas NVIDIA via `nvidia-smi`) — **sem tocar no jogo**.
+- Liga a **política de resfriamento ativa** (ventoinhas aceleram antes de o processador perder clock).
+- Detectou throttling → **CPU a 99%** (turbo desligado); se continuar, 90% e depois 80%.
+- Está frio há 4 min e a CPU virou **gargalo** (GPU ociosa esperando a CPU) → devolve um degrau. Se esquentar de novo logo depois,
+  volta e trava naquele nível até o fim da sessão (sem ficar oscilando).
+- Nunca esquentou na sessão e há gargalo → modo desempenho do processador (turbo agressivo).
+- Em notebook, GPU quente também segura a CPU (dividem os heat pipes). Avisa quando está na bateria, sugere limitar o FPS
+  quando a GPU esquenta e libera o cache da RAM quando a memória está quase cheia.
+- **Aprende por jogo**: o nível que funcionou vira o ponto de partida da próxima sessão (e relaxa sozinho se não esquentar mais).
+- Ao fechar o jogo, o plano de energia volta **exatamente** ao que era (também após queda de energia).
+
+Também há ajustes fixos na aba Ajustes: **Política de resfriamento ativa** e **Limitar o processador a 99%**.
+
+## Novidades da 1.0.2
+
+- **Guardião térmico e de desempenho** no Modo Jogo (veja acima), com painel ao vivo, relatório da última sessão e notificações.
+- Novos ajustes: Política de resfriamento ativa e Limitar o processador a 99%; a Otimização automática os recomenda em notebooks.
 
 ## Novidades da 1.0.1
 

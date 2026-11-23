@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Card, PageHeader, Button, Toggle, Check, Loading, Empty, Callout, Badge, confirm } from '../ui';
 import Icon from '../icons';
 import { call, useCall, toast } from '../lib';
+import ThermalCard from './ThermalCard';
 
 const PER_GAME = [
   { key: 'fso', label: 'Sem otimizações de tela cheia' },
@@ -69,6 +70,8 @@ export default function GameMode({ gm }) {
           )}
         </Card>
       </div>
+
+      <ThermalCard games={list} />
 
       <Card className="flush" title={`Jogos (${list.length})`} icon="game" actions={<>
         <Button small icon="search" loading={busy === 'detect'} onClick={detect}>Detectar jogos</Button>

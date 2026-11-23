@@ -15,7 +15,13 @@ const games = [
 const H = {
   'app.info': { version: '1.0.0', windows: true, admin: true, userData: 'C:\\Users\\voce\\AppData\\Roaming\\Windows Boost', logs: '' },
   'gm.status': () => gm,
-  'gm.list': games, 'gm.parts': D.parts, 'gm.options': D.options,
+  'gm.list': games,
+  'thermal.config': { cpuHot: 95, gpuHot: 87, learned: { a1: 1 }, lastReport: { game: 'Counter-Strike 2', at: Date.now() - 3600000, minutes: 52, peaks: { cpuTemp: 97, gpuTemp: 84 }, throttleSecs: 18, maxLevel: 'CPU a 99% (turbo desligado)', learned: 'CPU a 99% (turbo desligado)', events: [
+    { at: Date.now() - 6000000, type: 'act', text: 'Resfriamento ativo ligado (ventoinhas aceleram antes de o processador perder clock) → Padrão do plano' },
+    { at: Date.now() - 4800000, type: 'act', text: 'Thermal throttling detectado (o Windows está freando a CPU por temperatura (64%); sensor a 97 °C) → CPU a 99% (turbo desligado)' }] } },
+  'thermal.state': () => (gm.active ? { running: true, game: 'Counter-Strike 2', level: 1, levelLabel: 'CPU a 99% (turbo desligado)', peaks: { cpuTemp: 97, gpuTemp: 84 }, throttleSecs: 18,
+    last: { cpuTemp: 86.5, perf: 99, limit: 99, passive: 100, gpuUtil: 97, gpuTemp: 79, gpuClock: 1845, gpuClockMax: 2100, onAC: true, ramTotal: 16e9, ramFree: 6.2e9 },
+    events: [{ at: Date.now() - 120000, type: 'act', text: 'Começando no nível que funcionou da última vez em Counter-Strike 2 → CPU a 99% (turbo desligado)' }, { at: Date.now() - 30000, type: 'info', text: 'GPU quente: limitar o FPS no jogo à taxa do monitor reduz bastante o calor.' }] } : { running: false }), 'gm.parts': D.parts, 'gm.options': D.options,
   'gm.start': () => { gm = { ...gm, active: true, game: 'Manual' }; emit('gamemode', gm); return gm; },
   'gm.stop': () => { gm = { ...gm, active: false, game: null }; emit('gamemode', gm); return gm; },
   'sys.static': { cpu: { brand: 'AMD Ryzen 7 7800X3D 8-Core Processor', cores: 16, physicalCores: 8, speed: 4.2, speedMax: 5.05, x3d: true, hybrid: false, vendor: 'amd' },

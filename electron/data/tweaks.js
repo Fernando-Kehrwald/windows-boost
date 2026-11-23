@@ -116,6 +116,17 @@ $state = @{ services = $snaps.ToArray() }`,
     ...powerIndexTweak('SUB_PROCESSOR', 'CPMINCORES', 100, 100),
   },
   {
+    id: 'cooling_active', cat: 'desempenho', name: 'Política de resfriamento ativa', risk: 'safe', hw: ['cpu'],
+    desc: 'O Windows acelera as ventoinhas ANTES de reduzir o clock do processador (o padrão "passivo" em muitos notebooks reduz o clock primeiro). Mais barulho, menos queda de FPS.',
+    ...powerIndexTweak('SUB_PROCESSOR', 'SYSCOOLPOL', 1, 1),
+  },
+  {
+    id: 'cpu_max_99', cat: 'desempenho', name: 'Limitar o processador a 99% (desliga o turbo)', risk: 'caution', hw: ['cpu'],
+    desc: 'Estado máximo do processador = 99% no plano ativo. Na maioria das CPUs isso desliga o turbo: o processador esquenta MUITO menos e perde pouco desempenho. Resolve quedas de FPS por thermal throttling em notebooks (ex.: CS2 caindo de 120 para 30 FPS após algumas partidas).',
+    warn: 'Em desktops bem refrigerados reduz o desempenho máximo. O Guardião térmico do Modo Jogo faz isso automaticamente só quando detecta superaquecimento — prefira ele se o problema só acontece em jogos.',
+    ...powerIndexTweak('SUB_PROCESSOR', 'PROCTHROTTLEMAX', 99, 99),
+  },
+  {
     id: 'dynamic_tick', cat: 'desempenho', name: 'Desativar Dynamic Ticking', risk: 'risky', reboot: true, hw: ['timer'],
     desc: 'bcdedit /set disabledynamictick yes — o timer do sistema não "dorme".',
     warn: 'Aumenta consumo de energia; pode reduzir autonomia de notebooks.',

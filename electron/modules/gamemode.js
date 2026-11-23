@@ -5,6 +5,7 @@ const ps = require('../ps');
 const store = require('../store');
 const log = require('../log');
 const engine = require('./tweaks');
+const thermal = require('./thermal');
 
 const MMCSS = 'HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Multimedia\\SystemProfile';
 const GAMES = MMCSS + '\\Tasks\\Games';
@@ -41,6 +42,11 @@ const powerPart = (setting, sub, value) => ({
 });
 
 const PARTS = {
+  thermal: {
+    name: 'Guardião térmico e de desempenho',
+    desc: 'Monitora thermal throttling, gargalo de CPU, bateria e memória durante o jogo e ajusta o processador sozinho (ex.: limita a 99% para desligar o turbo quando esquenta; libera quando há gargalo). Lembra o que funcionou em cada jogo. Ideal para notebooks.',
+    special: true,
+  },
   background: {
     name: 'Aliviar segundo plano',
     desc: 'Baixa a prioridade (ou congela, se marcado) de apps pesados: navegadores, editores/IDE, Adobe, OneDrive/Dropbox, torrents, Notion etc. Launchers, anti-cheats, Discord/TeamSpeak, acesso remoto, VPNs e players de música são protegidos.',
@@ -101,7 +107,7 @@ Run netsh int tcp set supplemental template=Internet congestionprovider=$cp | Ou
   aspm: { name: 'ASPM do PCIe', desc: 'Desliga a economia de energia dos links PCIe (GPU, SSD, rede).', ...powerPart('ASPM', 'SUB_PCIE', 0) },
 };
 
-const DEFAULT_OPTIONS = { background: true, suspend: false, services: true, network: true, bbr2: false, gpu: true, io: true, cpuidle: false, aspm: true };
+const DEFAULT_OPTIONS = { thermal: true, background: true, suspend: false, services: true, network: true, bbr2: false, gpu: true, io: true, cpuidle: false, aspm: true };
 
 function options() { return { ...DEFAULT_OPTIONS, ...(store.get().gameMode.options || {}) }; }
 function parts() { return Object.entries(PARTS).map(([id, p]) => ({ id, name: p.name, desc: p.desc })); }
@@ -244,13 +250,14 @@ async function start(gameId, reason) {
     // Protege TODOS os jogos da lista (não só o atual), a plataforma e os anti-cheats.
     const params = { heavy: HEAVY, protect: protectedNames(), suspend: !!opts.suspend, services, games };
     const chosen = Object.keys(PARTS).filter((k) => opts[k]);
-    const defs = chosen.map((k) => ({ id: `gm_${k}`, ...PARTS[k] }));
+    const defs = chosen.filter((k) => !PARTS[k].special).map((k) => ({ id: `gm_${k}`, ...PARTS[k] }));
     // Marca a sessão ANTES de mexer em algo, para conseguir desfazer se o PC desligar no meio.
     store.update((d) => { d.gameSession = { at: Date.now(), game: game ? game.name : 'Manual', gameId: gameId || null, parts: {}, params }; });
     const script = `$__R = [ordered]@{}\n${defs.map((t) => engine.applyBlock(t, params)).join('\n')}\nOut-Json $__R`;
     const r = await ps.json(script, { timeout: 120000 });
     store.update((d) => { for (const t of defs) if (r[t.id] && r[t.id].ok) d.gameSession.parts[t.id] = { backup: r[t.id].backup, state: r[t.id].state }; });
     const failed = defs.filter((t) => !(r[t.id] && r[t.id].ok)).map((t) => `${t.name}: ${(r[t.id] || {}).error || 'falhou'}`);
+    if (opts.thermal) await thermal.start({ key: game ? game.id : 'manual', name: game ? game.name : 'sessão manual' }).catch((e) => log.warn(e.message));
     log.info(`Modo Jogo ligado (${reason || 'manual'})${game ? ` para ${game.name}` : ''}. ${failed.length ? 'Falhas: ' + failed.join('; ') : ''}`);
     return { ...statusInfo(), failed };
   } catch (e) {
@@ -264,7 +271,8 @@ async function stop(reason) {
   if (!s || busy) return statusInfo();
   busy = true; emit();
   try {
-    const defs = Object.keys(s.parts).map((id) => ({ id, ...PARTS[id.replace(/^gm_/, '')], params: s.params }));
+    await thermal.stop().catch((e) => log.warn(e.message));
+    const defs = Object.keys(s.parts).filter((id) => PARTS[id.replace(/^gm_/, '')]).map((id) => ({ id, ...PARTS[id.replace(/^gm_/, '')], params: s.params }));
     if (defs.length) {
       const script = `$__R = [ordered]@{}\n${defs.map((t) => engine.unapplyBlock(t, s.parts[t.id])).join('\n')}\nOut-Json $__R`;
       await ps.json(script, { timeout: 120000 });

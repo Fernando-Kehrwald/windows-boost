@@ -1,6 +1,6 @@
 // Windows Boost — processo principal. Nenhum dado sai do computador: não há login, licença,
 // telemetria nem atualização automática, e o renderer tem toda requisição de rede bloqueada.
-const { app, BrowserWindow, ipcMain, dialog, shell, Tray, Menu, nativeImage, session } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, shell, Tray, Menu, nativeImage, session, Notification } = require('electron');
 const path = require('path');
 const fs = require('fs');
 
@@ -37,6 +37,7 @@ const bios = require('./modules/bios');
 const drivers = require('./modules/drivers');
 const utilities = require('./modules/utilities');
 const advisor = require('./modules/advisor');
+const thermal = require('./modules/thermal');
 
 let win = null;
 let tray = null;
@@ -45,6 +46,12 @@ let quitting = false;
 function send(name, payload) { if (win && !win.isDestroyed()) win.webContents.send('event', name, payload); }
 log.onLog((e) => send('log', e));
 gamemode.onStatus((s) => { send('gamemode', s); updateTrayMenu(); });
+thermal.setRam(ram);
+thermal.onState((s) => send('thermal', s));
+thermal.onEvent((e) => {
+  if (e.type === 'info') return;
+  try { if (Notification.isSupported()) new Notification({ title: 'Windows Boost — Modo Jogo', body: e.text, silent: true, icon: ICON }).show(); } catch {}
+});
 ram.setProtection(() => ({ names: gamemode.protectedNames(), gaming: gamemode.isSessionActive() }));
 
 const ICON = path.join(__dirname, 'assets', 'icon.png');
@@ -162,6 +169,11 @@ const H = {
   'gm.parts': () => gamemode.parts(),
   'gm.options': () => gamemode.options(),
   'gm.setOptions': (o) => gamemode.setOptions(o),
+  'thermal.state': () => thermal.publicState(),
+  'thermal.config': () => thermal.cfg(),
+  'thermal.setConfig': (p) => thermal.setConfig({ cpuHot: Math.min(105, Math.max(70, Number(p.cpuHot) || 95)), gpuHot: Math.min(100, Math.max(65, Number(p.gpuHot) || 87)) }),
+  'thermal.resetLearned': (key) => thermal.resetLearned(key),
+  'thermal.probe': () => thermal.probe(),
   'gm.lists': () => ({ heavy: gamemode.HEAVY, protected: gamemode.PROTECTED }),
 
   'hw.timerInfo': () => system.timerInfo(),

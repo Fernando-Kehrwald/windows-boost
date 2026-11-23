@@ -65,6 +65,10 @@ function decide(f) {
   desk ? A('ultimate_power', 'Desktop na tomada: mantém o processador sempre pronto no clock máximo.') : S('ultimate_power', NB);
   A('services_manual', 'Menos serviços carregados no boot e em segundo plano. Windows Update e Segurança do Windows não são alterados.');
   desk ? A('core_parking', 'Mantém todos os núcleos acordados: menos atraso quando o jogo pede mais CPU.') : S('core_parking', NB);
+  f.laptop ? A('cooling_active', 'Notebook: as ventoinhas aceleram antes de o processador perder clock — evita quedas de FPS por calor.')
+    : O('cooling_active', 'Desktop: ventoinhas aceleram antes de reduzir clock (mais barulho).');
+  f.laptop ? O('cpu_max_99', 'Se o notebook esquenta e o FPS cai depois de um tempo jogando, isso resolve na maioria dos casos. O Guardião térmico do Modo Jogo já faz isso automaticamente só quando precisa — aplique fixo apenas se esquentar também fora dos jogos.')
+    : S('cpu_max_99', 'Desktop: reduziria o desempenho máximo sem necessidade. O Guardião térmico do Modo Jogo age se houver superaquecimento.');
   desk ? O('dynamic_tick', 'Pode reduzir latência, mas o ganho varia e aumenta o consumo. Teste com e sem.') : S('dynamic_tick', NB);
   f.win11 ? A('global_timer', 'Windows 11: faz o timer de alta resolução pedido pelo jogo valer para o sistema todo.') : S('global_timer', 'Só existe no Windows 11.');
   A('win32_priority', 'Dá mais tempo de CPU ao programa em primeiro plano (o jogo).');
